@@ -264,8 +264,8 @@ of the scheme follows.</p>
 	pout("""<li><b>Data Download:</b> Use the pattern<br />
 %(script)s?server=dataset&dataset=<i>DATA_SET_ID</i>&start_time=<i>BEGIN</i>&end_time=<i>END</i>&resolution=<i>SECONDS</i>
 <br />
-Where the <i>START</i> and <i>END</i> are time strings, and <i>SECONDS</i> is a floating
-point number.  To reterive data at the native resolution omitt the <b>resolution</b> 
+Where the <i>BEGIN</i> and <i>END</i> are time strings, and <i>SECONDS</i> is a floating
+point number.  To reterive data at the native resolution omit the <b>resolution</b> 
 parameter.
 """%dReplace)
 
