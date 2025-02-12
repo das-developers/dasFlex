@@ -2,7 +2,7 @@
 // that just makes sure all the das2 fields are in text format
 {
 
-	// Skipping the MIME section, das mime types built in
+	// Skipping the MIME definition section, das mime types are built in
 
 	// Define how to call the command first.
 	"internal":{
@@ -11,21 +11,34 @@
 			"order": 5, 
 			"template": "das2_ascii -c #[format.secfrac#-s @#] #[format.sigdigit#-r @#]",
 			"activation": [
-				{"key":"format.type","value":"das"},{"key":"format.version","value": "2"},
-				{"key":"format.serial","value": "text"}
+				{"key":"format.type",   "value":"das" },
+				{"key":"format.version","value":"2"   },
+				{"key":"format.serial", "value":"text"}
 			],
-			"input": {"type": "das","version": "2"},
+			"input":  {"type": "das","version": "2"},
 			"output": {"type": "das","version": "2","variant": "text"},
 		}
 	},
 
 	// Define how to communicate with it
-	"flex":{ // In the flex.json file
-		"protocal":{ // In the protocal section add...
+	"flex":{           // In the flex.json file
+
+		// Make sure the GET parameters we use are in the server protocol definition
+		"protocol":{
 			"httpParams":{
-				
-
-
+				"format.type":  {"required": false,"type": "string"}, 
+				"format.serial": {
+					"name": "Serialization",
+					"required": false,
+					"type": "enum",
+					"enum": ["text","binary"]
+				},
+				"format.version": {
+					"required": false, 
+					"type": "string" 
+				},
+				"format.secfrac": { "required": false, "type": "integer", "range": [0,9]},
+				"format.sigdigit": { "required": false,"type": "integer", "range": [2,17]}
 			}
 		},
 		"formats": {

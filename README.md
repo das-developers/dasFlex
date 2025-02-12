@@ -34,121 +34,43 @@ writen in **any** language, and released under almost **any** license.
 Compilation and installation of a dasFlex server has only been tested in Linux
 environments and depends on the following tools:
 
-1. Python >= 3.4
+1. Python >= 3.7
 2. Apache2, any remotely recent version
 3. [Redis](https://redis.io), known to work with version 3.2 or higher
-4. [redis-py](https://redislabs.com/lp/python-redis/), known to work with version 2.10 or higher
-5. [lxml](https://github.com/lxml/lxml), known to work with version 4.2 or higher
-5. [das2C](https://github.com/das-developers/das2C), latest version recommended
-6. [das2py](https://github.com/das-developers/das2py), latest version recommended
 
-Since das2C provides small binaries needed by dasFlex, and since there
-are no pre-built das2C packages, installation instructions for both das2C
-and dasFlex are included below.  In these instructions the '$' character
-is used at the beginning of a line to indicate commands that you'll need to run
-in a bourne compatible shell (bash, ksh, etc.).
 
-Example prerequisite package installation commands are provided below for CentOS 7 \.\.\.
+## Software Installation
+
+For Conda Packages (uncommon) issue:
 ```bash
-$ sudo yum install gcc git                               
-$ sudo yum install expat-devel fftw-devel openssl-devel             
-$ sudo yum install python3 python3-numpy python3-devel 
-$ sudo pip3 install redis
+conda install -c dasdevelopers dasflex
 ```
-\.\.\. and Debian 9:
+For PIP Packages issue:
 ```bash
-$ sudo apt-get install gcc git                           
-$ sudo apt-get install libexpat-dev libfftw3-dev libssl-dev          
-$ sudo apt-get install python3-dev python3-distutils python3-numpy
-$ sudo apt-get install redis-server                                 
-$ sudo apt-get install python3-redis
+python -m pip install dasFlex
 ```
 
-## Get the Source
+To build from source, see instructions in [ManualBuild.md](docs/ManualBuild.md)
 
-All sources are now on github.com
+## Server Root Setup
 
+All configuration data for the dasFlex web-service itself consists of plain
+files.  Redis is only used for work-lists.  Furthermore these files are not
+cached in memory, but are read anew as each is needed.
+
+To setup a server root area:
 ```bash
-$ git clone https://github.com/das-developers/das2C.git
-$ git clone https://github.com/das-developers/das2py.git
-$ git clone https://github.com/das-developers/dasFlex.git
+dasflex_mkroot /var/www/dasflex   # Just an example, adjust to taste
 ```
 
-## Build and Install
+The only file that the main CGI programs need to know about is `dasflex.conf`. 
+This contains the locations of all other items such as the data source catalog.
+Feel free to break-up and move directories as desired.  So long as `dasflex.conf`
+is updated with the new locations, top-level programs will be able to find all
+the necessary server components.
 
-Decide where your dasFlex code and configuration information will reside. 
-In the example below I've  selected `/var/www/dasflex` but you can choose
-any location you like.  These environment variables will be used through out
-the setup, so leaving your terminal window open though the testing stage will
-save time.
-
-```bash
-$ export PREFIX=/var/www/dasflex     # Adjust to taste
-$ export N_ARCH=/                    # since das2 servers are typically machine bound
-$ export PYVER=3.9                   # minimum 3.6
-$ export SERVER_ID=solar_orbiter_2   # for example.  ID should not contain whitespace
-```
-
-Test your `PYVER` setting by making sure the following command brings up a
-python interpreter:
-
-```bash
-$ python$PYVER
-```
-
-Build and install commands can run without `sudo` if the install directory
-is created manually.  The following will make the install directory and set
-it's ownership to the current account.  We will lock it down after install.
-```bash
-$ sudo mkdir $PREFIX
-$ sudo chown $LOGNAME $PREFIX
-```
-
-The following sequence will build, test, and install das2C and das2py
-if you have all prerequisite libraries installed:
-
-```bash
-$ cd das2C
-$ make
-$ make test     # Contacts remote services, okay if those tests fail
-$ make install
-$ cd ../
-
-$ cd das2py
-$ make 
-$ make test     # Also contacts remote servers, okay if those tests fail
-$ make install
-$ cd ../
-```
-
-Now build and install the python module and example configuration files.
-Set `--install-lib` and `--prefix` as indicated, unless you want to hand
-edit dasflex.conf after installation.  There is no need to run `build`
-before this step.
-
-```bash
-$ cd ../dasFlex
-$ python${PYVER} setup.py install --prefix=${PREFIX} --install-lib=${PREFIX}/lib/python${PYVER}
-$ make install
-```
-You can add the argument `--no-examples` to avoid installing the example
-data sources if these are not desired.
-
-Copy over the example configuration file:
-
-```bash
-$ cd ${PREFIX}/etc
-$ cp dasflex.conf.example dasflex.conf
-```
-
-We are done with server software installation, lock down the install area (if desired). 
-The `cache` subdirectory shoud be owned by the account that runs asynchronous 
-data-reduction processing.  The cache subdirectory should not be owned by the
-webserver account, or root, but any other account is fine.
-```bash
-$ sudo chown -R root:root $PREFIX
-$ sudo chown $LOGNAME $PREFIX/cache         # i.e. any non-apache, non-root account
-```
+After the server root has been created, customize `dasflex.conf`.  Starting with
+the SERVER_NAME, SERVER_ID settings.
 
 ## Configure Apache - CGI
 
@@ -189,7 +111,12 @@ instead of httpd.conf because das2 clients may transmit passwords.
 <Directory "/var/www/cgi-das">
   Options ExecCGI FollowSymLinks
 
-  # Make sure Authorization HTTP header is available to Das CGI scripts
+  # Provide CGI scripts with the location of the dasflex.conf file.
+  # The location used here is just an example and changes depending
+  # on the area selected by the `dasflex_mkroot` command above.
+  SetEnv DASFLEX_CONFIG /var/www/dasflex/etc/dasflex.conf
+
+  # Make sure Authorization HTTP header is available to dasFlex CGI scripts
   RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
   RewriteEngine on
 

@@ -1,0 +1,16 @@
+# This file controls the files in the source distribution (sdist) In order for
+# it to be used, 
+#
+#   [tools.setuptools]
+#      include-package-data = true
+#
+# must be present in the pyproject.toml file
+
+# Sources
+graft dasflex
+
+# Server root template files
+graft root
+
+# Don't accidentally pick up and pre-compiled python sources
+global-exclude *.py[cod]

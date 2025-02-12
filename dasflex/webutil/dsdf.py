@@ -217,7 +217,7 @@ class Dsdf(object):
 		self.lValidTimes = None
 		self.dSubSource = None
 
-		ptrn = re.compile('\$\(.*\)')
+		ptrn = re.compile(r'\$\(.*\)')
 
 		# New for v3.0, allow dataset IDs to be case insensitive
 		(self.sName, self.sPath) = _findDsdfNoCase(dConf['DATASRC_ROOT'], sDsdf, fLog);

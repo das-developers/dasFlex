@@ -22,8 +22,8 @@ _g_BrowserAgent = ['firefox','explorer','chrome','safari']
 
 DAYS="(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)"
 MONTHS="(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
-TIME="\d\d:\d\d:\d\d"
-PREFIX=re.compile("\[(%s %s [ \d]\d) (%s) (\d{4}) (\d+)\s+\d+\](.+)"%(DAYS,MONTHS,TIME))
+TIME=r"\d\d:\d\d:\d\d"
+PREFIX=re.compile(r"\[(%s %s [ \d]\d) (%s) (\d{4}) (\d+)\s+\d+\](.+)"%(DAYS,MONTHS,TIME))
 
 #PREFIX=re.compile("\[(%s %s \d\d?) (%s) (\d{4}) (\d+) .+\](.+)"%(DAYS,MONTHS,TIME)); 
 

@@ -2,7 +2,7 @@
 // streams on input and output delimited text values
 {
 	// Make sure the mime types for our inputs and outputs are defined. 
-	// Omitting the input format mime, because das format defs are built-in
+	// Omitting the input MIME definition, because das formats are built-in
 	"mime":{
 		"csv":{
 			"title":"Delimited Text",

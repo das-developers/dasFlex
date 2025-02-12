@@ -63,7 +63,7 @@ class build_scripts_wconf(build_scripts):
 		# Not efficient, don't care, it's easy to read and this is just install
 		# code.
 		for i in range(0, len(lLines)):
-			match = self.config_re.match(lLines[i])
+			match = self.config_re.match(lLines[i].decode(encoding))
 			if not match: continue
 	
 			if sys.version_info.major > 2:  
@@ -112,7 +112,7 @@ class build_scripts_wconf(build_scripts):
 					self.warn("%s is an empty file (skipping)" % script)
 					continue
 
-				match = self.first_line_re.match(first_line)
+				match = self.first_line_re.match(first_line.decode(encoding))
 				if match:
 					adjust_shebang = True
 					post_interp = match.group(1) or b''
@@ -179,8 +179,8 @@ class build_scripts_wconf(build_scripts):
 
 	def copy_scripts (self):
 		
-		self.config_re = re.compile(b'^g_sConfPath\s+=\s+.*$')
-		self.first_line_re = re.compile(b'^#!.*python[0-9.]*([ \t].*)?$')
+		self.config_re = re.compile(r'^g_sConfPath\s+=\s+.*$')
+		self.first_line_re = re.compile(r'^#!.*python[0-9.]*([ \t].*)?$')
 		self.copy_scripts_3()
 			
 
@@ -415,7 +415,7 @@ g_lKeepDest = ['passwd', 'group']
 
 setup(
    name="dasflex",
-	version="0.4-pre1",
+	version="0.4rc1",
 	description="Das Flexible Server - a multiformat stream caching and reduction web service",
 	author="Chris Piker",
 	packages=lPkg,

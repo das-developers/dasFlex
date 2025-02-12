@@ -1,0 +1,8 @@
+[console_scripts]
+dasflex_cgilog = dasflex.scripts.cgilog:main
+dasflex_cgimain = dasflex.scripts.cgimain:main
+dasflex_cupdate = dasflex.scripts.cupdate:main
+dasflex_mkroot = dasflex.scripts.mkroot:main
+dasflex_srctest = dasflex.scripts.srctest:main
+dasflex_todo = dasflex.scripts.todo:main
+dasflex_websocd = dasflex.scripts.websocd:main
