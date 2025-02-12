@@ -1,16 +1,6 @@
-# This file controls the files in the source distribution (sdist) In order for
-# it to be used, 
-#
-#   [tools.setuptools]
-#      include-package-data = true
-#
-# must be present in the pyproject.toml file
-
-# Sources
-graft dasflex
-
-# Server root template files
-graft root
-
-# Don't accidentally pick up and pre-compiled python sources
-global-exclude *.py[cod]
+include dasflex/root/etc/dasflex.conf.example.in
+include dasflex/root/etc/mime.json.example
+include dasflex/root/etc/das2peers.ini.example.in
+graft dasflex/root/examples
+graft dasflex/root/static
+graft dasflex/root/sdef/commands

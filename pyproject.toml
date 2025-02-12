@@ -28,7 +28,7 @@ dasflex_mkroot  = "dasflex.scripts.mkroot:main"
 dasflex_todo    = "dasflex.scripts.todo:main"
 
 [build-system]
-requires = [ "setuptools" ]
+requires = [ "setuptools", "wheel" ]
 build-backend = "setuptools.build_meta"
 
 # Packages data is handled by a separate makefile, or simple .tgz unpack
@@ -38,6 +38,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 packages = [
-	"dasflex","dasflex.handlers","dasflex.tasks","dasflex.util","dasflex.webutil"
+	"dasflex","dasflex.handlers","dasflex.tasks","dasflex.util","dasflex.webutil",
+	"dasflex.root"
 ]
 
+#[tool.setuptools.packages.find]
+#namespaces = true
