@@ -15,8 +15,6 @@ import traceback
 from io import StringIO        # handles unicode strings
 from os.path import join as pjoin
 
-g_sConfPath = REPLACED_ON_BUILD
-
 def pout(item):
 	"""If input item is bytes, write them, if item is a string
 	encode as utf-8 first"""	
@@ -178,19 +176,32 @@ def preLoadError(sOut):
 # Get my config file, boiler plate that has to be re-included in each script
 # since the location of the modules can be configured in the config file
 
-def getConf():
+def readConf(sConfPath):
 	
-	if not os.path.isfile(g_sConfPath):
-		if os.path.isfile(g_sConfPath + ".example"):
+	if not os.path.isfile(sConfPath):
+		if os.path.isfile(sConfPath + ".example"):
 			preLoadError("Move\n     %s.example\nto\n     %s\nto enable your site"%(
-			      g_sConfPath, g_sConfPath))
+			      sConfPath, sConfPath))
 		else:
-			preLoadError("%s is missing\n"%g_sConfPath)
+			sGuessRoot = os.path.dirname(os.path.dirname(sConfPath))
+			preLoadError(
+"""The config file:
+
+   %s 
+
+is missing.  Either update your Apache config to point to some other location
+or run:
+
+   dasflex_mkroot %s
+
+, or similar, to initialize the server root area.
+"""%(sConfPath, sGuessRoot)
+			)
 			
 		return None
 
 	# Yes, the Das2 server config files can contain unicode characters
-	fIn = open(g_sConfPath, encoding='utf-8')
+	fIn = open(sConfPath, encoding='utf-8')
 	
 	dConf = {}
 	nLine = 0
@@ -206,7 +217,7 @@ def getConf():
 		
 		iEquals = sLine.find('=')
 		if iEquals < 1 or iEquals > len(sLine) - 2:
-			preLoadError("Error in %s line %d"%(g_sConfPath, nLine))
+			preLoadError("Error in %s line %d"%(sConfPath, nLine))
 			fIn.close()
 			return None
 		
@@ -218,7 +229,7 @@ def getConf():
 	fIn.close()
 	
 	# As finial steps, inclued a reference to the config file itself
-	dConf['__file__'] = g_sConfPath
+	dConf['__file__'] = sConfPath
 
 	# Some replacement text
 	if 'SERVER_ID' not in dConf:
@@ -314,13 +325,31 @@ def getHandler(U, fLog, dConf, sReqType):
 #############################################################################
 # Main
 
-def main(form):
+def main():
+	
+	sConfPath = os.getenv("DASFLEX_CONFIG")
+	if sConfPath == None:
+		preLoadError(
+"""Can not load configuration data because the DASFLEX_CONFIG environment variable is not set. 
+Add: 
+
+   SetEnv DASFLEX_CONFIG /path/to/dasflex.conf
+
+to your Apache configuration in the appropriate <Directory> section and restart/reload Apache.
+
+The default location on Linux is:
+
+   /var/www/dasflex/etc/dasflex.conf
+
+but any location readable by the web-server user account is sufficent.
+""")
+		return 16
 
 	rStartTime = time.time()
 
 	pout("")
 			
-	dConf = getConf()
+	dConf = readConf(sConfPath)
 	if dConf == None:
 		return 17
 		
@@ -360,6 +389,9 @@ def main(form):
 			preLoadError("Wierd Error, %s is not set in the script environment\r\n"%sEnv)
 			return 21
 	
+
+	form = cgi.FieldStorage()
+
 	# Way up high, before anything Check the query parameters for obvious problems
 	if not U.misc.checkParams(fLog, form):  # check for obvious problems, 
 		U.webio.queryError(fLog, 
@@ -395,7 +427,7 @@ def main(form):
 	# Check to see that our resource path is sent and exist, or just 
 	# exit with an error
 	if not 'RESOURCE_PATH' in dConf:
-		U.webio.serverError(fLog, u"Set the RESOURCE_PATH keyword in %s"%g_sConfPath)
+		U.webio.serverError(fLog, u"Set the RESOURCE_PATH keyword in %s"%sConfPath)
 		return 22
 	
 	if not os.path.isdir(dConf['RESOURCE_PATH']):
@@ -549,7 +581,6 @@ def main(form):
 ##############################################################################
 # Stub main for cgi
 
-form = cgi.FieldStorage()
-
-# Return values don't matter in CGI programming.  That's unfortunate
-main(form)
+if __name__ == "__main__":
+	main()
+	# Return values don't matter in CGI programming.  That's unfortunate

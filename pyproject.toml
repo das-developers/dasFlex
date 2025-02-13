@@ -39,7 +39,7 @@ build-backend = "setuptools.build_meta"
 include-package-data = true
 packages = [
 	"dasflex","dasflex.handlers","dasflex.tasks","dasflex.util","dasflex.webutil",
-	"dasflex.root"
+	"dasflex.root", "dasflex.scripts"
 ]
 
 #[tool.setuptools.packages.find]

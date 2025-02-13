@@ -106,14 +106,13 @@ dist/dasflex-0.4rc2.tar.gz:$(SRC_FILES)
 	python -m build 
 
 install:
+	@python -m pip uninstall -y ./dist/dasflex*.whl
 	python -m pip install --pre ./dist/dasflex*.whl
 
 distclean:
-	-rm -r build
 	-rm -r dist
 
 clean:
-	-rm -r build
 	-rm -r dist
 
 # Non-venv installer for use by older projects

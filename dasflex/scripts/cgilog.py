@@ -9,9 +9,6 @@ from os.path import join as pjoin
 
 import cgitb;
 
-g_sConfPath = REPLACED_ON_BUILD
-
-
 ##############################################################################
 # Browser identification for use before util modules are loaded, after they 
 # are loaded util.webio.g_lNotDas2App is used.  If you update this list, *also*
@@ -111,20 +108,31 @@ def setModulePath(dConf):
 # Entry point for script
 ##############################################################################
 def main():
-	form = cgi.FieldStorage()
-	
-	if 'type' in form:
-		sType=form["type"].value
-	else:
-		sType="das2"
 	
 	#pout("Content-Type: text/plain; charset=utf-8\r\n\r\n")
+
+	sConfPath = os.getenv("DASFLEX_CONFIG")
+	if sConfPath == None:
+		preLoadError(
+"""Can not load configuration data because the DASFLEX_CONFIG environment variable is not set. 
+Add: 
+
+   SetEnv DASFLEX_CONFIG /path/to/dasflex.conf
+
+to your Apache configuration in the appropriate <Directory> section and restart/reload Apache.
+
+The default location on Linux is:
+
+   /var/www/dasflex/etc/dasflex.conf
+
+but any location readable by the web-server user account is sufficent.
+""")
+		return 16
 	
 	# Find out the log directory location
-	dConf = getConf(g_sConfPath)
+	dConf = readConf(sConfPath)
 	if dConf == None:
 		return 13
-		
 		
 	# Set the system path
 	if not setModulePath(dConf):
@@ -154,6 +162,14 @@ def main():
 		sMainSrvUrl = dConf['SERVER_URL']
 
 	# TODO: filter type content
+
+	form = cgi.FieldStorage()
+	
+	if 'type' in form:
+		sType=form["type"].value
+	else:
+		sType="das2"
+
 
 	if "ip" in form:
 		ip=form["ip"].value
@@ -293,34 +309,39 @@ def error(sText):
 	pout(sText)
 	
 
-def getConf(sConfFile):
-	"""Simple config file reader, maybe too simple
-	"""
+def readConf(sConfPath):
 	
-	if not os.path.isfile(sConfFile):
-		if os.path.isfile(sConfFile + ".example"):
-			error(u"Move\n     %s.example\nto\n     %s\nto enable your site"%(
-			      sConfFile, sConfFile))
+	if not os.path.isfile(sConfPath):
+		if os.path.isfile(sConfPath + ".example"):
+			preLoadError("Move\n     %s.example\nto\n     %s\nto enable your site"%(
+			      sConfPath, sConfPath))
 		else:
-			error(u"%s is missing\n"%sConfFile)
+			sGuessRoot = os.path.dirname(os.path.dirname(sConfPath))
+			preLoadError(
+"""The config file:
+
+   %s 
+
+is missing.  Either update your Apache config to point to some other location
+or run:
+
+   dasflex_mkroot %s
+
+, or similar, to initialize the server root area.
+"""%(sConfPath, sGuessRoot)
+			)
 			
 		return None
 
-	fIn = open(sConfFile, 'r')
+	# Yes, the Das2 server config files can contain unicode characters
+	fIn = open(sConfPath, encoding='utf-8')
 	
 	dConf = {}
 	nLine = 0
 	for sLine in fIn:
 		nLine += 1
-		
-		# Really need to covert to a reg-ex parser, but this will do in the
-		# short term.  Remove any text after a # character only if it occurs
-		# before any '=' characters 
-		
 		iComment = sLine.find('#')
-		iEquals = sLine.find('=')
-		
-		if (iComment > -1) and ((iEquals == -1) or (iEquals > iComment)):
+		if iComment > -1:
 			sLine = sLine[:iComment]
 	
 		sLine = sLine.strip()
@@ -329,17 +350,16 @@ def getConf(sConfFile):
 		
 		iEquals = sLine.find('=')
 		if iEquals < 1 or iEquals > len(sLine) - 2:
-			error(u"Error in %s line %d"%(sConfFile, nLine))
+			preLoadError("Error in %s line %d"%(sConfPath, nLine))
 			fIn.close()
 			return None
 		
 		sKey = sLine[:iEquals].strip()
 		sVal = sLine[iEquals + 1:].strip(' \t\v\r\n\'"')
 		dConf[sKey] = sVal
-
+	
 	
 	fIn.close()
-	return dConf
 
 
 ##############################################################################
@@ -431,7 +451,5 @@ def oneRequest(title,info):
 # Start script execution
 ##############################################################################
 if __name__ == "__main__":
-	try:
-		sys.exit( main() )
-	except Exception as e:
-		preLoadError("Exception encountered %s"%str(e))
+	main()
+

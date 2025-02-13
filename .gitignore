@@ -4,3 +4,5 @@ das2server/util/__pycache__
 test/temp*
 dist/*
 dasflex.egg-info
+dasflex/__pycache__
+dasflex/*/__pycache__

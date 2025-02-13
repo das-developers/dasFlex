@@ -11,7 +11,7 @@ SERVER_NAME = "%(SERVER_ID)s"
 SERVER_ID = "%(SERVER_ID)s"
 
 # The top location of the data source definitions
-DATASRC_ROOT = "%(PREFIX)s/catalog"
+DATASRC_ROOT = "%(CAT_DIR)s"
 
 # Provide the server URL, this is for self referential items
 #
@@ -35,29 +35,29 @@ CONTACT_EMAIL = "update&#45;dasflex&#46;conf&#64;nowhere&#45;ed&#117;"
 CONTACT_URL  = "https://update-dasflex.conf.nowhere.edu/~someone/"
 
 # The top location of data source include files
-DATASRC_INC  = "%(PREFIX)s/catalog/sdef/include"
+DATASRC_INC  = "%(ROOT_DIR)s/sdef/include"
 
 # If using simple local authentication, the name of the group and users files
 # Version 3.1 of the server should add better authentication methods
-USER_PASSWD = "%(INST_ETC)s/passwd"
-USER_GROUP  = "%(INST_ETC)s/group"
-MIME_FILE   = "%(INST_ETC)s/mime.json"
+USER_PASSWD = "%(ETC_DIR)s/passwd"
+USER_GROUP  = "%(ETC_DIR)s/group"
+MIME_FILE   = "%(ETC_DIR)s/mime.json"
 
 # The module path for loading utilities and handles, there can be
 # more than one entry, seperate them via ':' characters, no matter
 # the operating systems default pathsep character.
-MODULE_PATH = "%(PREFIX)s/lib:%(PREFIX)s/lib/python%(PYVER)s"
+MODULE_PATH = "%(PY_PATH)s"
 
 # The directory for binaries that don't have an explicit path, separate
 # multiple paths with ':'
-BIN_PATH = "%(PREFIX)s/bin/%(N_ARCH)s"
+BIN_PATH = "%(BIN_PATH)s"
 
 # A directory to set for loading shared objects, separate multiple
 # paths with ':'
-LIB_PATH = "%(PREFIX)s/lib/%(N_ARCH)s"
+LIB_PATH = "%(LIB_PATH)s"
 
 # Where to put log files.  You should probably pick an alternate location
-LOG_PATH = "%(PREFIX)s/log"
+LOG_PATH = "%(LOG_DIR)s"
 
 # The URL to the das2_srv_cgilog program.  If this value doesn't
 # contain '//' then it is assumed to be relative to the path to the 
@@ -86,11 +86,11 @@ IGNORE_REDIRECT = false
 
 # Path to various resource files, such as style sheets, logos, etc
 # Should contain das2server.xsl, and a logo.*.
-RESOURCE_PATH = "%(PREFIX)s/static"
+RESOURCE_PATH = "%(STATIC_DIR)s"
 
 # Provide links to other das2 servers you run, or use (or just know
 # about :)
-PEERS_FILE = "%(INST_ETC)s/das2peers.ini"
+PEERS_FILE = "%(ETC_DIR)s/das2peers.ini"
 
 
 # This server can send das streams over websocket frames.  To enable this
@@ -129,12 +129,12 @@ WEBSOCKET_SSL = false
 # The private key file for standalone das websocket servers.  This is similar
 # to a private key file for user accounts, and shouldn't be readable by users
 # other then the web server user.
-WEBSOCKET_KEY = "%(INST_ETC)s/server.key"
+WEBSOCKET_KEY = "%(ETC_DIR)s/server.key"
 
 # The public certificate file.  This contains the public key, but the public
 # key has been signed by a certificate authority.  Presumably it's a
 # certificate authority that the client trusts.
-WEBSOCKET_CERT = "%(INST_ETC)s/server.cert"
+WEBSOCKET_CERT = "%(ETC_DIR)s/server.cert"
 
 # The interface to listen on for web-socket connections.  Defaults to local
 # host only.  If left empty, all interfaces are bound.  To listen to all
@@ -152,7 +152,7 @@ DAS1_TO_DAS2 = "das2_from_das1"
 # The absolute filesystem path to the data cache, only used if caching has 
 # been enabled in one or more DSDF files.  You might want to pick an alternate
 # location
-CACHE_ROOT = "%(PREFIX)s/cache"
+CACHE_ROOT = "%(CACHE_DIR)s"
 
 # Set a default stream reducer. Data source definitions can override this
 # setting by defining the following object in thier *.json files.
