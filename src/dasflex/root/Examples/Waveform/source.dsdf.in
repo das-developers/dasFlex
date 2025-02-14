@@ -1,7 +1,7 @@
 ; This is a DSDF file.  DSDF files define data sources.  A data source is 
 ; simply a program that the server can invoke to produce data over a given
-; parameter range in a usable format such as a das2 stream or a QStream.  Since
-; the das2 system is defined in terms of interfaces between programs, it does
+; parameter range in a usable format such as a Das2 stream or a QStream.  Since
+; the Das2 system is defined in terms of interfaces between programs, it does
 ; not matter what computer language is used to create your data producers.
 ; As long as they write a usable stream to standard output they will plug
 ; into the overall server.
@@ -18,19 +18,23 @@
 ; low-frequency electric field waveforms collected by Voyager 1 while
 ; crossing Jupiter's bow-shock in the solar wind.
 
-localId = 'Examples/Spectra'
+localId = 'Examples/Waveform'
 
 ; All Data sources must have a one-line description
 
-description = 'Uncalibrated Voyager 1 PWS Wideband dynamic spectra (Sample Dataset)'
+description = 'Uncalibrated Voyager 1 PWS Wideband waveforms (Sample Dataset)'
 
 
 ; Summaries are optional, but encouraged.  The example below demonstrates
 ; multi-line strings
 
-summary = 'Dynamic spectra generated from the Waveform_Example data source '+$
-          'see the summary of the Wavform_Example data source for more '+$
-			 'information.'
+summary = 'Raw Voyager PWS 4-bit waveform values.  Without correlating '+$
+          'information it is not possible to calibrate these data into '+$
+          'physical units as an on board automated gain control system '+$
+          'adjusted input attenuation to keep signals within a measurable '+$
+          'sensitivity range.  In addition, the PWS instrument had no '+$
+			 'mechanism for transmitting these gain settings to the spacecraft '+$
+			 'computer.'
 
 
 ; Any Bourne shell compatible command may be used below.  The server will 
@@ -39,15 +43,18 @@ summary = 'Dynamic spectra generated from the Waveform_Example data source '+$
 ; The first two are always given, the third is only provided if supplied
 ; by the end-user client program (such as Autoplot)
 
-reader = 'env PYTHONPATH=%(PREFIX)s/lib/python%(PYVER)s %(PREFIX)s/examples/spectra/reader.sh'
+reader = '/usr/bin/env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/waveform.py %(INST_DIR)s/vgr_data'
 
 
-; This dataset is able to use the default reducer, das2_bin_avgsec
-; thus the reducer directive is not needed here.
-; reducer = das2_bin_avgsec
+; The default reducer simply outputs bin averages, which are not suitable
+; for waveform data.  Here we tell the server that it should not pipe the
+; output of this reader through a reducer program.
+
+reducer = 'not_reducible'
 
 
-; The output of this reader comes from das2_psd and is thus a das2Stream
+; This reader produces data as a das2Stream.  QStreams may also be used
+; but these are not understood by das2_cache_rdr and das2_psd
 
 das2Stream = 1
 
@@ -60,11 +67,10 @@ techContact = 'Your Name <your.name@yourplace.edu>'
 
 ; Scientific Contact, these are not required but highly encouraged.
 
-sciContact = 'Some Scientist <some.scientist@yourplace.edu>'
+sciContact = 'Bill Kurth <william-kurth@uiowa.edu>'
 
 
-; Max time range values that will be accepted by das2 pyserver, requests
-; outside this range will be trimmed.
+; Currently this is not used by the Das2 server
 
 validRange = '1979-03-01T12:26:11 to 1979-03-01T12:29:24 UTC'
 
@@ -74,28 +80,4 @@ validRange = '1979-03-01T12:26:11 to 1979-03-01T12:29:24 UTC'
 ; For this small dataset we are just taking the whole range as the
 ; example.
 
-exampleRange_00 = '1979-03-01T12:26:11 to 1979-03-01T12:29:24 | Bow shock crossing'
-
-
-; This reader can take extra parameters in the optional third argument.
-; These can be used to change how the dynamic spectrum is calculated.
-; These are described below.  When using Autoplot as the client these
-; descriptions are visible to the end user, but are somewhat cluncky at
-; this point.
-
-param_00 = 'DFT_LEN | The length of each transform | integer | 800 '
-param_01 = 'DFT_SLIDE | The denominator of the overlap fraction, so 2 means 1/2 overlap | integer | 2'
-
-; The output of this reader may be cached at various resolution to allow
-; for rapid graphical navigation.  The line below states that the server
-; may generate daily files containing data averaged over 10 second time
-; bins.  Since no special reducer is listed for this source, the default
-; reducer will be used to generate the cache files.
-
-cacheLevel_00 = '250 ms | hourly'
-cacheLevel_10 = '1 s | daily'
-
-
-; Enable HAPI format conversion if desired
-hapi = 1
-
+exampleRange_00 = '1979-03-01T12:26:11 to 1979-03-01T12:29:24 UTC'

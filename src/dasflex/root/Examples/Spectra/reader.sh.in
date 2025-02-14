@@ -69,8 +69,8 @@ function main {
 		nDenom=2
 	fi
 	
-	echo "exec: python%(PYVER)s %(PREFIX)s/examples/waveform/reader.py %(PREFIX)s/examples/waveform/vgr_data $sBeg $sEnd | das2_psd -c 2s $nLen $nDenom " 1>&2
-	python%(PYVER)s  %(PREFIX)s/examples/waveform/reader.py %(PREFIX)s/examples/waveform/vgr_data $sBeg $sEnd | das2_psd -c 2s $nLen $nDenom
+	echo "exec: %(PY_INTERPRETER)s %(SUPER_DIR)s/Waveform/reader.py %(SUPER_DIR)s/Waveform/vgr_data $sBeg $sEnd | das2_psd -c 2s $nLen $nDenom " 1>&2
+	%(PY_INTERPRETER)s %(SUPER_DIR)s/Waveform/reader.py %(SUPER_DIR)s/Waveform/vgr_data $sBeg $sEnd | das2_psd -c 2s $nLen $nDenom
 	return $?
 }
 

@@ -6,6 +6,8 @@ import platform
 import inspect
 import os
 import os.path
+import copy
+import shutil
 
 from os.path import dirname as dname
 from os.path import join as pjoin
@@ -19,6 +21,63 @@ except:
 
 def perr(sMsg):
 	sys.stderr.write("ERROR: %s\n"%sMsg)
+
+def pinfo(sMsg):
+	sys.stderr.write("INFO: %s\n"%sMsg)
+
+# ########################################################################### #
+def copyFile(path, sDest, dRep):
+	# Open anything ending in ".in" in text mode and do replacement.
+	# otherwise just copy over the bytes
+
+	if str(path).endswith(".hide"):
+		return None
+
+	sDestDir = dname(sDest)
+	if not os.path.exists(sDestDir):
+		os.makedirs(sDestDir, 0o775, True)
+
+	if str(path).endswith(".in"):
+		# Strip off the .in
+		# Add install directory
+		dRep = copy.deepcopy(dRep)
+		dRep["INST_DIR"] = sDestDir
+		dRep["SUPER_DIR"] = dname(sDestDir)
+
+		sDest = sDest[:-3]
+		pinfo("%s -> %s"%(str(path), sDest))
+
+		with path.open(mode='r') as fIn:
+			sTplt = fIn.read()
+			with open(sDest, "w") as fOut:
+				fOut.write(sTplt%dRep)
+	else:
+		pinfo("%s -> %s"%(str(path), sDest))
+
+		with path.open(mode='rb') as fIn:
+			with open(sDest, 'wb') as fOut:
+				fOut.write(fIn.read())
+
+# ########################################################################### #
+def copySub(path, sStripTo, sRep, dRep):
+	"""Copy a sub items.
+	Args:
+		sStrip (str) - Find this 
+	"""
+	for subPath in path.iterdir():
+		if str(subPath).find("__pycache__") > -1: continue
+
+		if subPath.is_dir():
+			copySub(subPath, sStripTo, sRep, dRep)
+		else:
+			print(str(subPath), sStripTo, sRep)
+			
+			sDest = str(subPath)
+			i = sDest.find(sStripTo)
+			n = len(sStripTo) + 1
+			sDest = pjoin(sRep, sDest[i+n:])
+			copyFile(subPath, sDest, dRep)
+
 
 # ########################################################################### #
 def main():
@@ -67,7 +126,8 @@ def main():
 		sDef = "%%ROOT%%\\bin;%s\\;%s\\System32"%(sExeDir, sWinDir)
 	psr.add_argument(
 		'-b','--bin-path', default=sDef, help="Set the path for any readers or other "+\
-		"sub-programs launched by dasFlex.  Defaults to: '%s'"%sDef, dest="sBinPath",
+		"sub-programs launched by dasFlex. Always put the path to the servers own "+\
+		"executable scripts first! Defaults to: '%s'"%sDef, dest="sBinPath",
 		metavar="PATH"
 	)
 	# Walk up stack to SOMEPLACE from SOMPLACE/dasflex/scripts/mkroot.py
@@ -117,6 +177,13 @@ def main():
 
 	dRep = {'ROOT_DIR': sRoot}
 
+	if not os.path.isdir(sRoot):
+		try:
+			os.makedirs(sDestDir, 0o775, True)
+		except:
+			perr("Can't create the top level directory, %s.  Do that manually and re-run"%sRoot)
+			return 13
+
 	if opts.sEtcDir: dRep['ETC_DIR'] = opts.sEtcDir
 	else: dRep['ETC_DIR'] = pjoin(sRoot, 'etc')
 
@@ -139,9 +206,18 @@ def main():
 	# Some things are never null
 	dRep['BIN_PATH'] = opts.sBinPath.replace('$ROOT', sRoot)
 
+	# Assume dasflex bin is always first
+	n = dRep['BIN_PATH'].find(os.pathsep)
+	if n == -1:
+		n = len(dRep['BIN_PATH'])
+	dRep['DASFLEX_BIN'] = dRep['BIN_PATH'][:n]
+
 	dRep['PY_PATH'] = opts.sPyPath
 
 	dRep['SERVER_ID'] = opts.SERVER_ID
+
+	# Save off the python executable used to run this command
+	dRep['PY_INTERPRETER'] = sys.executable
 
 	# Dictionary is setup, now read and output files
 
@@ -152,17 +228,50 @@ def main():
 	# make copies of things that don't end in ".in" and
 	# use the substitution dictionary above for things that d.
 
-	for thing in resfiles('dasflex.root').iterdir():
-		print(thing)
+	dDirs = {
+		'etc'           : dRep['ETC_DIR'], 
+		'static'        : dRep['STATIC_DIR'],
+		'Examples'      : "%s/dsdf/Examples"%sRoot, 
+		'sdef.commands' : "%s/commands"%sRoot
+	}
+
+	for sDir in dDirs.keys():
+		for path in resfiles('dasflex.root.%s'%sDir).iterdir():
+			sIn = str(path)
+			sStrip = pjoin('dasflex/root', sDir.replace('.','/'))
+			i = sIn.find(sStrip)
+			if i < 0:
+				raise EnvironmentError("Couldn't find %s in resource path %s"%(sStrip, sIn))
+			i += len(sStrip) + 1 # Get dir posix sep
+			sOut = pjoin(dDirs[sDir], sIn[i:])
+
+			if sIn.find("__pycache__") > -1: continue
+
+			# If the sub item is a directory, go recursive
+			if path.is_dir():
+				copySub(path, sStrip, dDirs[sDir], dRep)
+			else:
+				copyFile(path, sOut, dRep)
+
+	# Top level special item.  If dasflex.conf.example exists but not dasflex.conf,
+	# then copy over to dasflex.conf
+	sSrc = pjoin(dRep['ETC_DIR'], "dasflex.conf.example")
+	sDest = pjoin(dRep['ETC_DIR'], "dasflex.conf")
+	if not os.path.isfile(sDest):
+		pinfo("dasflex.conf missing, copying over example file")
+		shutil.copy2(sSrc, sDest)
+
+	if not os.path.isdir(dRep['CAT_DIR']):
+		os.makedirs(dRep['CAT_DIR'], 0o775, True)
 
 	sConfFile = pjoin(dRep['ETC_DIR'], 'dasflex.conf')
 	print(
-'''DasFlex root directory initialized. Insure that:
+'''DasFlex root directory minimally initialized. Insure that:
    
     SetEnv DASFLEX_CONFIG %s
 
 is set in your Apache <Directory> block for the CGI bin area.
-''')
+'''%sConfFile)
 	return 0
 
 # ########################################################################### #

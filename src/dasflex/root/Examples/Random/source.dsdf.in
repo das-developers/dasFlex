@@ -3,9 +3,8 @@
 ;
 ; To create a internal and external source definitions from this file run:
 ;
-;    export PYTHONPATH=%(PREFIX)s/lib/python%(PYVER)s 
-;    %(PREFIX)s/bin/das2_srv_sdef source.dsdf         
-;
+;    export PYTHONPATH=%(PY_PATH)s
+;   %(DASFLEX_BIN)s/dasflex_import source.dsdf
 ; 
 ; A data source is simply a program that the server can invoke to produce data
 ; over a given.  Since th server invokes external reader programs to generate data,
@@ -27,7 +26,7 @@
 
 ; Required Items
 description = 'Produce random values between -10 and +10'
-reader = 'env PYTHONPATH=%(PREFIX)s/lib/python%(PYVER)s python%(PYVER)s %(PREFIX)s/examples/random/reader.py'
+reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/reader.py'
 reducer = not_reducible
 das2Stream = 1
 techContact = 'Your Name <your.name@yourplace.edu>'

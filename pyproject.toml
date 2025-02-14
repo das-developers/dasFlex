@@ -35,12 +35,15 @@ build-backend = "setuptools.build_meta"
 # python is likely to overwrite careful user changes if allowed to touch
 # the package data.
 
-[tool.setuptools]
-include-package-data = true
-packages = [
-	"dasflex","dasflex.handlers","dasflex.tasks","dasflex.util","dasflex.webutil",
-	"dasflex.root", "dasflex.scripts"
-]
+#[tool.setuptools]
+#packages = [
+#	"dasflex","dasflex.handlers","dasflex.tasks","dasflex.util","dasflex.webutil",
+#	"dasflex.root", "dasflex.scripts"
+#]
 
-#[tool.setuptools.packages.find]
-#namespaces = true
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
+
+[tool.setuptools.exclude-package-data]
+"dasflex.root.Examples.Waveform" = ["__pycache__"]

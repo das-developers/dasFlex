@@ -66,37 +66,33 @@ webutil/__init__.py webutil/auth.py webutil/cache.py webutil/command.py \
 webutil/dsdf.py webutil/errors.py webutil/mime.py webutil/misc.py webutil/page.py \
 webutil/task.py webutil/webio.py \
 \
-root/__init__.py \
 root/etc/dasflex.conf.example.in \
 root/etc/mime.json.example \
 root/etc/das2peers.ini.example.in \
-root/examples/_dirinfo_.dsdf \
-root/examples/UNLICENSE \
-root/examples/auth/sine.py \
-root/examples/auth/source.dsdf.in \
-root/examples/params/reader.py \
-root/examples/params/source.dsdf.in \
-root/examples/params/source.json.in \
-root/examples/params/themis_data/CAA_EST_UG_STA_v36.pdf \
-root/examples/params/themis_data/tha_l3_sm_20080629_171151_20080629_171152_burst_v01.cdf \
-root/examples/random/reader.py \
-root/examples/random/source.dsdf.in \
-root/examples/random/source.json.in \
-root/examples/spectra/reader.sh.in \
-root/examples/spectra/source.dsdf.in \
-root/examples/waveform/reader.py \
-root/examples/waveform/source.dsdf.in \
-root/examples/waveform/source.json.in \
-root/examples/waveform/vgr_data/example_wfrm-spectra.png \
-root/examples/waveform/vgr_data/PDSFORMAT.LBL \
-root/examples/waveform/vgr_data/VG1_1979-03-01_12-26-11-956.DAT \
-root/examples/waveform/vgr_data/VG1_1979-03-01_12-27-47-956.DAT \
-root/examples/waveform/vgr_data/VG1_1979-03-01_12-26-59-956.DAT \
-root/examples/waveform/vgr_data/VG1_1979-03-01_12-28-35-956.DAT \
-root/examples/waveform/vgr_data/WFENGHDR.FMT \
-root/examples/waveform/vgr_data/WFROWPFX.FMT \
+root/Examples/_dirinfo_.dsdf \
+root/Examples/UNLICENSE \
+root/Examples/Auth/sine.py \
+root/Examples/Auth/source.dsdf.in \
+root/Examples/Params/reader.py \
+root/Examples/Params/source.dsdf.in \
+root/Examples/Params/themis_data/CAA_EST_UG_STA_v36.pdf \
+root/Examples/Params/themis_data/tha_l3_sm_20080629_171151_20080629_171152_burst_v01.cdf \
+root/Examples/Random/reader.py \
+root/Examples/Random/source.dsdf.in \
+root/Examples/Spectra/reader.sh.in \
+root/Examples/Spectra/source.dsdf.in \
+root/Examples/Waveform/reader.py \
+root/Examples/Waveform/source.dsdf.in \
+root/Examples/Waveform/vgr_data/example_wfrm-spectra.png \
+root/Examples/Waveform/vgr_data/PDSFORMAT.LBL \
+root/Examples/Waveform/vgr_data/VG1_1979-03-01_12-26-11-956.DAT \
+root/Examples/Waveform/vgr_data/VG1_1979-03-01_12-27-47-956.DAT \
+root/Examples/Waveform/vgr_data/VG1_1979-03-01_12-26-59-956.DAT \
+root/Examples/Waveform/vgr_data/VG1_1979-03-01_12-28-35-956.DAT \
+root/Examples/Waveform/vgr_data/WFENGHDR.FMT \
+root/Examples/Waveform/vgr_data/WFROWPFX.FMT \
 
-SRC_FILES:=$(patsubst %,dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
+SRC_FILES:=$(patsubst %,src/dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
 
 .PHONY: build install distclean clean
 
