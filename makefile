@@ -9,20 +9,29 @@
 # are no longer used for python3.12:
 #
 #   N_ARCH
-#   PYVER
+#   PY_VER
 #
 # though N_ARCH is still set for older install methods.
-#
-# Also, the new command dasflex_mkroot now set's the variables that
-# used to be set via: 
-# 
-#   PREFIX 
-#   INST_ETC
-#
-# so these are no longer needed as well.  This is a big change.
+
+
+ifeq ($(PYVER),)
+	PYVER=3
+endif
+
+ifeq ($(PY_BIN),)
+PY_BIN=$(which python)
+
+ifeq ($(PY_BIN),)
+PY_BIN=$(which python3)
+endif
+
+ifeq ($(PY_BIN),)
+$(error Neither python nor python3 were found, set PY_BIN to the path to your python interpreter)
+endif
+endif
+
 
 # Only affects the *_old targets
-
 ifeq ($(PREFIX),)
 	PREFIX:=/var/www/dasflex
 endif
@@ -35,14 +44,7 @@ ifeq ($(N_ARCH),)
 	N_ARCH:=/   
 endif
 
-ifeq ($(PYVER),)
-	PYVER=3
-endif
-
-ifeq ($(PYVENV),)
-$(error Please set PYVENV to the root of your python virtual environment.  To use system python set PYVENV=/usr and PYVER=3.7 or similar)
-endif
-
+PYVER:=$(shell $(PY_BIN) -c "import sys; print('%d.%d'%sys.version_info[:2])")
 # ... end old env vars
 
 SRC:= \
@@ -113,10 +115,10 @@ clean:
 
 # Non-venv installer for use by older projects
 build_old:
-	python${PYVER} legacy/setup.py build
+	$(PY_BIN) legacy/setup.py build
 
 install_old_noex:
-	python${PYVER} legacy/setup.py install --prefix=${PREFIX} \
+	$(PY_BIN) legacy/setup.py install --prefix=${PREFIX} \
  	   --install-lib=${PREFIX}/lib/python${PYVER} \
  	   --install-scripts=${PREFIX}/bin/${N_ARCH} --no-examples
 	@echo "-------------------------------------------------------------------"

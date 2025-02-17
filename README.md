@@ -46,8 +46,12 @@ For Conda Packages (uncommon) issue:
 conda install -c dasdevelopers dasflex
 ```
 For PIP Packages issue:
+
+It assumed that you're running a python binary from your virtual environment.
+Theres no need to "enter" the environment, just provide a full path to the
+version of python you wish to use for the server.
 ```bash
-python -m pip install dasFlex
+/path/to/your/python -m pip install dasFlex
 ```
 
 To build from source, see instructions in [ManualBuild.md](docs/ManualBuild.md)
@@ -58,7 +62,9 @@ All configuration data for the dasFlex web-service itself consists of plain
 files.  Redis is only used for work-lists.  Furthermore these files are not
 cached in memory, but are read anew as each is needed.
 
-To setup a server root area:
+To setup a server root area run `dasflex_mkroot`.  If you're using a python 
+virtual environment you'll find the script installed under VENV_ROOT/bin.
+
 ```bash
 dasflex_mkroot /var/www/dasflex   # Just an example, adjust to taste
 ```

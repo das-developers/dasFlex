@@ -254,12 +254,14 @@ def main():
 				copyFile(path, sOut, dRep)
 
 	# Top level special item.  If dasflex.conf.example exists but not dasflex.conf,
-	# then copy over to dasflex.conf
-	sSrc = pjoin(dRep['ETC_DIR'], "dasflex.conf.example")
-	sDest = pjoin(dRep['ETC_DIR'], "dasflex.conf")
-	if not os.path.isfile(sDest):
-		pinfo("dasflex.conf missing, copying over example file")
-		shutil.copy2(sSrc, sDest)
+	# then copy over to dasflex.conf.  Same for mime.json.example.
+	for sFile in ('dasflex.conf', 'mime.json'):
+		sSrc = pjoin(dRep['ETC_DIR'], "%s.example"%sFile)
+		sDest = pjoin(dRep['ETC_DIR'], sFile)
+		if not os.path.isfile(sDest):
+			pinfo("dasflex.conf missing, copying over example file")
+			shutil.copy2(sSrc, sDest)
+
 
 	if not os.path.isdir(dRep['CAT_DIR']):
 		os.makedirs(dRep['CAT_DIR'], 0o775, True)

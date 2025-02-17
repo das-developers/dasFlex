@@ -9,8 +9,6 @@ from os.path import dirname as dname
 import optparse
 from io import StringIO
 
-g_sConfPath = REPLACED_ON_BUILD
-
 U = None  # Namespace anchor for dasflex.util module, loaded after sys.path 
           # is set via the config file
 
@@ -38,18 +36,18 @@ def perr(item):
 # Get my config file, boiler plate that has to be re-included in each script
 # since the location of the server module is in the config file, not sys.path
 
-def getConf():
+def getConf(sConfPath):
 	
-	if not os.path.isfile(g_sConfPath):
-		if os.path.isfile(g_sConfPath + ".example"):
+	if not os.path.isfile(sConfPath):
+		if os.path.isfile(sConfPath + ".example"):
 			perr(u"Move\n   %s.example\nto\n   %s\nto enable your site\n"%(
-				  g_sConfPath, g_sConfPath))
+				  sConfPath, sConfPath))
 		else:
-			perr(u"%s is missing\n"%g_sConfPath)
+			perr(u"%s is missing\n"%sConfPath)
 			
 		return None
 
-	fIn = open(g_sConfPath, 'r')
+	fIn = open(sConfPath, 'r')
 	
 	dConf = {}
 	nLine = 0
@@ -65,7 +63,7 @@ def getConf():
 		
 		iEquals = sLine.find('=')
 		if iEquals < 1 or iEquals > len(sLine) - 2:
-			preLoadError(u"Error in %s line %d"%(g_sConfPath, nLine))
+			preLoadError(u"Error in %s line %d"%(sConfPath, nLine))
 			fIn.close()
 			return None
 		
@@ -76,7 +74,7 @@ def getConf():
 	fIn.close()
 	
 	# As a final step, inclued a reference to the config file itself
-	dConf['__file__'] = g_sConfPath
+	dConf['__file__'] = sConfPath
 	
 	return dConf
 
@@ -170,7 +168,7 @@ class MyOptParse(optparse.OptionParser):
 		# on the lookout for changes.  
 		dRep = {
 			'das2':'das2.d2t', 'das3':'flex.json', 'das3ws':'flexRT.json', 
-			'intern':'internal.json', 'conf':g_sConfPath
+			'intern':'internal.json'
 		}
 
 		file.write("""
@@ -178,7 +176,7 @@ NAME:
    dasflex_cupdate - Update Catalog information after data source changes
 
 SYNOPSIS:
-   dasflex_cupdate [options]
+   dasflex_cupdate [options] CONFIG_FILE
 
 DESCRIPTION:
    dasflex_cupdate walks the server catalog area in a bottom up fashion 
@@ -196,19 +194,14 @@ DESCRIPTION:
 OPTIONS:
    -h, --help  Print this help message and exit
 	
-   -c FILE, --config=FILE
-               Use FILE as the dasflex.conf configuration instead of the
-               compiled in default.  Should be an absolute path
-
    -d DIR, --cat-dir=DIR
                Instead of updating the server's catalogs, update an alternate
                external catalog area.
 
 FILES:
-   Each das2py-server is defined by a single top-level configuration file. By
-   default, configuration data for this program are taken from:
-	
-      %(conf)s
+   Each dasFlex server is defined by a single top-level configuration file. The
+   path to this file must be supplied as a command line parameter.  Any other
+   files read are only found via the top-level configuration filel.
 
 SEE ALSO:
    The companion program dasflex_sdef handles import of sources from DSDF or
@@ -217,18 +210,28 @@ SEE ALSO:
 """%dRep)
 
 # ########################################################################## #
-def main(argv):
+def main():
 	global U
 
 	sUsage = "dasflex_cupdate [options]"
 	psr = MyOptParse(prog="dasflex_sdef", usage="sUsage")
 
-	psr.add_option('-c', '--config', dest="sConfig", default=g_sConfPath)
 	psr.add_option('-d', '--cat-dir', dest="sCatDir", default=None)
 
 	(opts,lPaths) = psr.parse_args()
 
-	dConf = getConf()
+	if len(lPaths) != 1:
+		perr("The location of the server definition file, dasflex.conf' was not provided.")
+		if os.getenv('DASFLEX_PREFIX'):
+			perr("Since DASFLEX_PREFIX is set, there's a high probability the "+\
+				  "file you're looking for is %s/etc/dasflex.conf ."%os.getenv('DASFLEX_PREFIX'))
+		else:
+			perr("Use -h for help.")
+		return 16
+	else:
+		sConfPath = lPaths[0]
+
+	dConf = getConf(sConfPath)
 	if dConf == None:
 		return 17
 
@@ -307,4 +310,4 @@ def main(argv):
 
 # ########################################################################## #
 if __name__ == '__main__':
-	main(sys.argv)
+	main()
