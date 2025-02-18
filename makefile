@@ -57,7 +57,7 @@ handlers/info.py handlers/intro.py handlers/logo.py handlers/peers.py \
 handlers/resource.py handlers/timedata.py handlers/verify.py \
 \
 scripts/cgimain.py scripts/cgilog.py scripts/websocd.py scripts/cupdate.py \
-scripts/srctest.py scripts/mkroot.py scripts/todo.py \
+scripts/das2test.py scripts/mkroot.py scripts/todo.py \
 \
 tasks/__init__.py tasks/cachetask.py tasks/covertask.py tasks/listtask.py \
 tasks/usagetask.py \

@@ -7,7 +7,7 @@ import sys
 import urllib
 import urllib.parse
 import urllib.request
-import optparse
+import argparse
 import datetime
 import logging
 import subprocess
@@ -24,8 +24,6 @@ from os.path import join as pjoin
 from os.path import basename as bname
 from os.path import dirname as dname
 
-g_sConfPath = "REPLACED_ON_BUILD"
-
 das2 = None  # Namespace anchor for das2 module, loaded after sys.path is set
              # via the config file
 
@@ -34,6 +32,9 @@ def perr(sMsg):
 	"""Minor output before regular logging is setup"""
 	sys.stderr.write("ERROR: %s\n"%sMsg)
 
+def pinfo(sMsg):
+	"""Minor output before regular logging is setup"""
+	sys.stderr.write("INFO: %s\n"%sMsg)
 
 ##############################################################################
 # Get my config file, boiler plate that has to be re-included in each script
@@ -43,10 +44,10 @@ def getConf(sConfPath):
 	
 	if not os.path.isfile(sConfPath):
 		if os.path.isfile(sConfPath + ".example"):
-			perr(u"Move\n   %s.example\nto\n   %s\nto enable your site\n"%(
+			perr("Move\n   %s.example\nto\n   %s\nto enable your site\n"%(
 				  sConfPath, sConfPath))
 		else:
-			perr(u"%s is missing\n"%sConfPath)
+			perr("%s is missing\n"%sConfPath)
 			
 		return None
 
@@ -70,7 +71,7 @@ def getConf(sConfPath):
 		
 		iEquals = sLine.find('=')
 		if iEquals < 1 or iEquals > len(sLine) - 2:
-			preLoadError(u"Error in %s line %d"%(sConfPath, nLine))
+			preLoadError("Error in %s line %d"%(sConfPath, nLine))
 			fIn.close()
 			return None
 		
@@ -81,7 +82,7 @@ def getConf(sConfPath):
 	fIn.close()
 	
 	# As a finial step, inclued a reference to the config file itself
-	dConf['__file__'] = g_sConfPath
+	dConf['__file__'] = sConfPath
 	
 	return dConf
 	
@@ -91,7 +92,7 @@ def getConf(sConfPath):
 
 def setModulePath(dConf):
 	if 'MODULE_PATH' not in dConf:
-		perr(u"Set MODULE_PATH = /dir/containing/dasflex_python_module")
+		perr("Set MODULE_PATH = /dir/containing/dasflex_python_module")
 		return False	
 	
 	lDirs = dConf['MODULE_PATH'].split(os.pathsep)
@@ -271,10 +272,9 @@ ap_app.writeToPng( '%s', 640, 480 )
 java.lang.System.exit(0)
 '''
 
-def makePlot(log, sServer, sSource, sRange, sInterval, sParams, sJavaBin, 
-             sAutoplot):
+def makePlot(log, sServer, sSource, sRange, sInterval, sParams, sAutoplot):
 	'''Returns:  The 2-tuple (nRetCode, sMsg)
-	then return codes are:
+	the return codes are:
 	
 	0 - Plot constructed properly
 	1 - 3 Setup problem, can't find autoplot or something like that
@@ -321,8 +321,7 @@ def makePlot(log, sServer, sSource, sRange, sInterval, sParams, sJavaBin,
 	
 	sScriptPath = pjoin(os.getcwd(), sScriptName)
 	
-	sCmd = '%s -cp %s -Djava.awt.headless=true org.autoplot.AutoplotUI --script "%s"'%(
-	       sJavaBin, sAutoplot, sScriptPath)
+	sCmd = '%s --headless --script "%s"'%(sAutoplot, sScriptPath)
 			 
 	log.info("Exec: %s"%sCmd)
 
@@ -352,6 +351,65 @@ def makePlot(log, sServer, sSource, sRange, sInterval, sParams, sJavaBin,
 		return (1, "Proper Autoplot exit, but %s is missing (HINT: If using pyServer check TEST_FROM in das2server.conf."%sPngPath)
 	
 	return (0, "%s tested okay"%sSource)
+
+##############################################################################
+def readData(log, sServer, sSource, sRange, sInterval, sParams):
+	"""Returns the 2-tuple (nRetCode, sMsg)
+	The return codes are:
+	0 - Data read and are non-empty
+	1 - Data source return definitions, but no data packets
+	2 - Data source responded but only with a stream header
+	3 - Exception reading from source
+	"""
+
+	log.info("Testing %s"%sSource)
+
+	lRange = sRange.split('|')[0].split()
+	if len(lRange) < 3 or lRange[1].lower() != 'to':
+		return (111, "Improper ExampleRange value")
+	
+	sMsg = "Range: %s to %s"%(lRange[0], lRange[2])
+	
+	if sInterval:
+		sUrl = '%s?dataset=%s&start_time=%s&end_time=%s&interval=%s'%(
+		       sServer, sSource, lRange[0], lRange[2], sInterval)
+		sMsg += ", interval: %s"%sInterval
+	else:
+		fRes = (das2.DasTime(lRange[2])  - das2.DasTime(lRange[0])) / 1000
+		sMsg += ", resolution: %f s"%fRes
+		sUri = '%s?dataset=%s&start_time=%s&end_time=%s&resolution=%f'%(
+		       sServer, sSource, lRange[0], lRange[2], fRes)
+	
+	if sParams:
+		sUrl += "&%s"%sParams.replace(' ', '%20')
+		sMsg += ", parameters: %s"%sParams
+	
+	log.info(sMsg)
+
+	try:
+		log.info('Reading: %s'%sUrl)
+		dHdr, lDs = das2.read_http(sUrl, 6.0, "dasFlex-Legacy-test")
+	except Exception as e:
+		return (3, str(e))
+	
+	if len(lDs) == 0:
+		return (2, "No datasets defined in query return")
+
+	# Find at least one dataset that is non-zero in all ranks
+	bGotOne = False
+	for ds in lDs:
+		print(dir(ds))
+		nSz = 1
+		for n in ds.shape: nSz *= n
+		if nSz > 0:
+			bGotOne = True
+			break
+
+	if not bGotOne:
+		return (1, "No data in interval")
+	else:
+		return (0, "%s tested okay"%sSource)
+
 
 ##############################################################################
 def setupLogging(sLogLevel, sLogFile=None):
@@ -561,7 +619,7 @@ def workDir(dConf, sDas2Srv):
 		sHost = sHost[:sHost.find('/')]
 
 	nDayMod3 = datetime.datetime.now().day % 3
-	sWorkDir = pjoin(dConf['LOG_PATH'], 'd2check_%s.%d'%(sHost, nDayMod3))
+	sWorkDir = pjoin(dConf['LOG_PATH'], 'das2test_%s.%d'%(sHost, nDayMod3))
 
 	nVer = 0
 	sVerDir = sWorkDir + ".%d"%nVer
@@ -579,135 +637,117 @@ def workDir(dConf, sDas2Srv):
 	return sVerDir
 
 ##############################################################################
-def main(argv):
+def main():
 	
 	global das2 # To be replaced with the loaded module
 
-	psr = optparse.OptionParser(
-		usage="%prog [options]",
-		prog="dasflex_apcheck.py",
+	psr = argparse.ArgumentParser(
+		usage="%%prog [options] [-U URL|-C FILE]",
+		prog="dasflex_das2test",
 		description="""
-Checks all data sources on a das2 server to determine if data from the 
-example range can be plotted by autoplot.  Returns non-zero if one or more 
-data sources cannot plot.  All configuration defaults are read from the
-dasflex.conf file, for use as a no-arg cron job, but command-line overrides
-are available.
+Checks all data sources on a das2 compatable server to determine if data from
+the example range can be plotted.  Returns non-zero if one or more data sources
+cannot plot. This script does not test newer catalog based definitions, only
+legacy das2 reponses.
 """)
 
-	sConfFile = bname(g_sConfPath)
-
-	psr.add_option(
-		'-C', '--no-config', dest="bNoConfig", default=False, action="store_true",
-		help="Don't try to read a server config file at all.  This requires that "+\
-		"the das2 module is on your python path."
-	)
-	psr.add_option(
+	psr.add_argument(
 		'-D', '--no-data-src', dest="sExSource", metavar="STR1,STR2,STR3",
-		default=None, type="string", help="The opposite of -d. Identifies source IDs "+\
+		default=None, help="The opposite of -d. Identifies source IDs "+\
 		"that should *not* be checked.  If the exclude and include lists overlap, "+\
 		"exclude wins."
 	)
-	psr.add_option(
+	psr.add_argument(
 		'-L', '--no-log-file', dest="bLogStdErr", action="store_true", default=False,
 		help="Don't output to the server log area, instead send all processing "+\
-		"status messages to stderr."
+		"status messages to stderr.  Use this when checking a remote server via '-U'."
 	)
-	psr.add_option(
+	psr.add_argument(
 		'-M', '--no-mail', dest="bSendMail", action="store_false", default=True,
 		help="Don't actually send any mail regardless of the destination, just write "+\
 		"the messages to disk in *.msg files."
 	)					
-	psr.add_option(
+	psr.add_argument(
 		'-N', '--no-op', dest="bListOnly", action="store_true", default=False, 
 		help="Just list the sources that would have been checked, but don't actually "+\
 		"download data"
 	)               
-	psr.add_option(
-		'-P', '--no-plots', dest="bSkipPlots", action="store_true", default=False,
-		help="By default autoplot is called to generate plots using the example range, "+\
-		"this option just tests that any data are output by the data source"
-	)
-	psr.add_option(
+	psr.add_argument(
 		'-R', '--to-sender', dest="bTest", action="store_true",
 		help="Test the test.  Sends all messages that would have generated to the "+\
 		"senders email address instead of the tech contact."
 	)
-	psr.add_option(
+	psr.add_argument(
 		'-T', '--not-tech', dest="sExContact", metavar="STR1,STR2,STR3",
-		default=None, type="string", help="The opposite of -t. Identifies contacts "+\
+		default=None, help="The opposite of -t. Identifies contacts "+\
 		"who's sources should *not* be checked.  If the exclude and include lists "+\
 		"overlap, exclude wins."
 	)
-	
-	psr.add_option(
-		'-a','--autoplot', dest="sAutoplot", metavar="AUTOPLOT", default=None,
-		type="string", action="store", help="Specify an autoplot executable, by "+\
-		"default Autoplot is assumed to be on the server PATH specified in %s"%sConfFile
+	psr.add_argument(
+		'-f', '--from', dest="sFrom", metavar="EMAIL", default=None,  
+		help="Send email from this address instead of CONTACT_EMAIL in the config file." +\
+		" This is needed when contacting a remote server without using a local config."
 	)
-	psr.add_option(
-		'-f', '--from', dest="sFrom", metavar="EMAIL", default=None, type="string", 
-		help="Send email from this address instead of CONTACT_EMAIL in the %s file"%sConfFile
-	)
-	psr.add_option(
+	psr.add_argument(
 		'-m', '--mail-dest', dest="sSmtpSrv", metavar="HOST", default="localhost",
 		help="By default messages are sent via SMTP to localhost, which is typically "+\
 		"configured to forward them on.  Use this option to contact a specific SMTP "+\
 		"server instead."
 	)
 
-	psr.add_option(
-		'-l', "--log-level", dest="sLevel", metavar="LOG_LEVEL", type="string",
+	psr.add_argument(
+		'-l', "--log-level", dest="sLevel", metavar="LOG_LEVEL", 
 		action="store", default="warning", help="Logging level one of [critical, "+\
 		"error, warning, info, debug].  The default is warning, ONLY set the level "+\
 		"lower than this for testing, not production." 
 	)
 																			               
-	sDef = '/usr/bin/java'
-	psr.add_option(
-		'-j','--java-bin', dest="sJavaBin", metavar="JAVA_BIN", default=sDef,
-		type="string", action="store", help="Specify and alternate path to the "+\
-		"java binary, the default is %s"%sDef
-	)               
-	psr.add_option(
-		'-n', '--num-srcs', dest="nCheck", metavar="INTEGER", default=-1, type="int",
+	psr.add_argument(
+		'-n', '--num-srcs', dest="nCheck", metavar="INTEGER", default=-1, type=int,
 		help="Limit the number of sources checked to INTEGER.  By default all "+\
 		"sources are checked"
 	)
-	psr.add_option(
+	psr.add_argument(
 		'-s','--filter-src', dest="sInSource", metavar="STR1,STR2,STR3", default=None,
-		type="string", help="A comma separated list of strings.  The data source ID "+\
+		help="A comma separated list of strings.  The data source ID "+\
 		"must contain one of these string or the source is skipped.  For example "+\
 		"'Juno/WAV,Juno/FGM' will test only the magnetometer and Waves instrument "+\
 		"sources."
 	)
-	psr.add_option(
+	psr.add_argument(
 		'-t','--filter-tech', dest="sInContact", metavar="STR1,STR2,STR3", default=None,
-		type="string", help="A comma separated list of strings.  The tech contact "+\
+		help="A comma separated list of strings.  The tech contact "+\
 		"string must contain at least one of these strings or the data source is "+\
 		"skipped. For example using 'chris,matt' will only check data sources"+\
 		"where the string chris or matt is present it the techContact field."
 	)
-	psr.add_option(
-		'-u', '--server-url', dest="sServer", metavar="URL", type="string", default=None,
-		help="Instead of reading from server defined in %s, check "%sConfFile+\
-		"a non-local das2 server instead."
-	)
-	psr.add_option(
-		'-c', '--config', dest="sConfig", metavar="FILE", type="string",
-		default=g_sConfPath, help="Override the built in config file path of %s"%g_sConfPath
-	)
-	psr.add_option(
-		'-w', '--work-dir', dest="sWorkDir", metavar="DIR", type="string",
-		default=None, help="Instead of writing data to the server's cache area, use "+\
+	psr.add_argument(
+		'-w', '--work-dir', dest="sWorkDir", metavar="DIR",
+		default=None, help="Instead of writing data to the server's log area, use "+\
 		"the given DIRectory instead.  Will be created if does not exist."
 	)
+	psr.add_argument(
+		'-U', '--server-url', dest="sServer", metavar="URL", default=None,
+		help="Read and check data for a remote server instead of the one defined"+\
+		"by a configuration file."
+	)
+	psr.add_argument(
+		'-C', '--config', dest="sConfig", metavar="FILE",
+		default=None, help="Check sources for the server defined by this config FILE"
+	)
+	psr.add_argument(
+		'-A','--autoplot', dest="sAutoplot", metavar="EXEC", default=None,
+		action="store", help="Attempt to plot data using this autoplot "+\
+		"EXECutabale.  By default data are loaded but not plotted."
+	)
 	
-	(opts, lParam) = psr.parse_args(argv[1:])
+	
+	opts = psr.parse_args()
 
 	# Get the server definition (maybe)
 	dConf = {}
-	if not opts.bNoConfig:
-		perr("Server definition: %s\n"%opts.sConfig)
+	if opts.sConfig:
+		pinfo("Server definition from: %s\n"%opts.sConfig)
 		dConf = getConf(opts.sConfig)
 		if dConf == None:
 			return 17
@@ -715,9 +755,9 @@ are available.
 	if opts.sServer:
 		sDas2Srv = opts.sServer
 	else:
-		sDas2Srv = dConf['MAIN_SRV_URL']
+		sDas2Srv = dConf['SERVER_URL']
 		if sDas2Srv.find('//') < 4:
-			perr("Use full URLs for MAIN_SRV_URL in %s, "%sConfFile +\
+			perr("Use full URLs for SERVER_URL in %s, "%opts.sConfig +\
 				"or provide the server URL via the command line.")
 			return 20
 
@@ -736,7 +776,7 @@ are available.
 		log = setupLogging(opts.sLevel, pjoin(sWorkDir, 'd2check.log'))
 		
 	# Set the system path, if I have a config file
-	if not opts.bNoConfig:
+	if not opts.sConfig:
 		if not setModulePath(dConf):
 			return 18
 		
@@ -753,28 +793,9 @@ are available.
 	else:
 		sFrom = dConf['CONTACT_EMAIL']
 
-	if len(lParam) > 3:	
-		log.error("Unknown cmdline params present %s, use -h for help"%lParam[4:])
-		return 99
-	
-	# Find autoplot if not specified
-	lPath = os.environ['PATH'].split(os.pathsep)
-	for sDir in lPath:
-		if opts.sAutoplot: break
-		
-		sBin = pjoin(sDir, 'autoplot')
-		if os.path.isfile(sBin) and os.access(sBin, os.X_OK):
-			opts.sAutoplot = sBin
-	
-	# Make sure than autoplot was selected
-	if opts.sAutoplot == None:
-		log.error("Can't find autoplot")
-		return 99
-	
-	if not os.path.isfile(opts.sAutoplot):
+	if opts.sAutoplot and (not os.path.isfile(opts.sAutoplot)):
 		log.error("Can't find autoplot at %s"%opts.sAutoplot)
 		return 99
-	
 			
 	# Setup the exclude and include lists for contacts and sources
 	opts.lInContacts = None
@@ -874,8 +895,6 @@ are available.
 					bSkip = False
 					break
 			if bSkip: continue
-
-
 		
 		if sDsdfContact.find(',') != -1:
 			sTmp = 'are'
@@ -901,11 +920,15 @@ are available.
 			nRet = 0
 			sMsg = None
 			print("Would have tested: %s,%s"%(sDas2Srv,sDataSource))
-		else:		
-			(nRet, sMsg) = makePlot(
-				log, sDas2Srv, sDataSource, sRange, sInterval, sParams, 
-				opts.sJavaBin, opts.sAutoplot
-			)
+		else:
+			if opts.sAutoplot:
+				(nRet, sMsg) = makePlot(
+					log, sDas2Srv, sDataSource, sRange, sInterval, sParams, opts.sAutoplot
+				)
+			else:
+				(nRet, sMsg) = readData(
+					log, sDas2Srv, sDataSource, sRange, sInterval, sParams
+				)
 										
 		#nKbSelf1 = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 		#nKbSub1  = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
@@ -949,4 +972,4 @@ are available.
 		
 ##############################################################################
 if __name__ == "__main__":
-	sys.exit( main(sys.argv) )
+	sys.exit( main() )
