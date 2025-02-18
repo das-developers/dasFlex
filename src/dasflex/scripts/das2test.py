@@ -357,9 +357,9 @@ def readData(log, sServer, sSource, sRange, sInterval, sParams):
 	"""Returns the 2-tuple (nRetCode, sMsg)
 	The return codes are:
 	0 - Data read and are non-empty
-	1 - Data source return definitions, but no data packets
-	2 - Data source responded but only with a stream header
-	3 - Exception reading from source
+	101 - Data source return definitions, but no data packets
+	102 - Data source responded but only with a stream header
+	103 - Exception reading from source
 	"""
 
 	log.info("Testing %s"%sSource)
@@ -371,13 +371,13 @@ def readData(log, sServer, sSource, sRange, sInterval, sParams):
 	sMsg = "Range: %s to %s"%(lRange[0], lRange[2])
 	
 	if sInterval:
-		sUrl = '%s?dataset=%s&start_time=%s&end_time=%s&interval=%s'%(
+		sUrl = '%s?server=dataset&dataset=%s&start_time=%s&end_time=%s&interval=%s'%(
 		       sServer, sSource, lRange[0], lRange[2], sInterval)
 		sMsg += ", interval: %s"%sInterval
 	else:
 		fRes = (das2.DasTime(lRange[2])  - das2.DasTime(lRange[0])) / 1000
 		sMsg += ", resolution: %f s"%fRes
-		sUri = '%s?dataset=%s&start_time=%s&end_time=%s&resolution=%f'%(
+		sUrl = '%s?server=dataset&dataset=%s&start_time=%s&end_time=%s&resolution=%f'%(
 		       sServer, sSource, lRange[0], lRange[2], fRes)
 	
 	if sParams:
@@ -388,17 +388,16 @@ def readData(log, sServer, sSource, sRange, sInterval, sParams):
 
 	try:
 		log.info('Reading: %s'%sUrl)
-		dHdr, lDs = das2.read_http(sUrl, 6.0, "dasFlex-Legacy-test")
+		dHdr, lDs = das2.read_http(sUrl, 6.0, "dasFlex-selftest")
 	except Exception as e:
-		return (3, str(e))
+		return (103, str(e))
 	
 	if len(lDs) == 0:
-		return (2, "No datasets defined in query return")
+		return (102, "No datasets defined in query return")
 
 	# Find at least one dataset that is non-zero in all ranks
 	bGotOne = False
 	for ds in lDs:
-		print(dir(ds))
 		nSz = 1
 		for n in ds.shape: nSz *= n
 		if nSz > 0:
@@ -406,7 +405,7 @@ def readData(log, sServer, sSource, sRange, sInterval, sParams):
 			break
 
 	if not bGotOne:
-		return (1, "No data in interval")
+		return (101, "No data in interval")
 	else:
 		return (0, "%s tested okay"%sSource)
 
@@ -658,7 +657,7 @@ legacy das2 reponses.
 		"exclude wins."
 	)
 	psr.add_argument(
-		'-L', '--no-log-file', dest="bLogStdErr", action="store_true", default=False,
+		'-e', '--log-stderr', dest="bLogStdErr", action="store_true", default=False,
 		help="Don't output to the server log area, instead send all processing "+\
 		"status messages to stderr.  Use this when checking a remote server via '-U'."
 	)
@@ -813,6 +812,7 @@ legacy das2 reponses.
 		opts.lExSources = [s.strip() for s in opts.sExSource.split(',')]
 		
 	nTestedDsdfs = 0
+	nErrorDsdfs = 0
 	
 	dMessages = {}  # Collection of failure messages to send out
 	
@@ -867,6 +867,7 @@ legacy das2 reponses.
 	
 		sDsdfUrl = '%s?server=dsdf&dataset=%s'%(sDas2Srv, sDataSource)
 		fDas2Stream = urllib.request.urlopen(sDsdfUrl)
+		log.info("Checking: Server '%s' Source '%s'"%(sDas2Srv, sDataSource))
 		pkt = readPkt(log, fDas2Stream)
 		if pkt.nType != Das2Pkt.STREAM_HDR:
 			log.error("Stream %s doesn't start with stream header"%sDsdfUrl)
@@ -942,11 +943,12 @@ legacy das2 reponses.
 			log.info("%s: OKAY"%sDataSource)
 		elif nRet < 100:
 			log.error(sMsg)
-			nSysError = 13
 		else:
 			if sDsdfContact not in dMessages:
 				dMessages[sDsdfContact] = []
 			dMessages[sDsdfContact].append( (nRet, sDataSource, sRange, sMsg, sDas2Srv) )	
+			nSysError = 13
+			nErrorDsdfs += 1
 	
 	if (opts.lExContacts or opts.lInContacts or opts.lInSources or opts.lExSources) \
 	   and (nTestedDsdfs == 0):
@@ -963,9 +965,9 @@ legacy das2 reponses.
 		log, opts.sSmtpSrv, sFrom, dMessages, opts.bTest, opts.bSendMail
 	)
 		
-	if nMsgs != 0:
-		print("%d Sources OK, %d fail(s)"%(nTestedDsdfs-nMsgs, nMsgs))
-		return nMsgs
+	if nErrorDsdfs != 0:
+		print("%d Sources OK, %d fail(s)"%(nTestedDsdfs-nErrorDsdfs, nErrorDsdfs))
+		return nSysError
 	else:
 		print("%d sources OK"%nTestedDsdfs)
 		return nSysError
