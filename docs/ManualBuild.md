@@ -39,7 +39,7 @@ $ sudo apt-get install python3-redis
 
 ## Get the Source
 
-All sources are now on github.com
+All sources are on github.com
 
 ```bash
 $ git clone https://github.com/das-developers/das2C.git
@@ -56,17 +56,8 @@ the setup, so leaving your terminal window open though the testing stage will
 save time.
 
 ```bash
-$ export PREFIX=/var/www/dasflex     # Adjust to taste
-$ export N_ARCH=/                    # since das2 servers are typically machine bound
-$ export PYVER=3.9                   # minimum 3.6
-$ export SERVER_ID=solar_orbiter_2   # for example.  ID should not contain whitespace
-```
-
-Test your `PYVER` setting by making sure the following command brings up a
-python interpreter:
-
-```bash
-$ python$PYVER
+$ export PREFIX=/var/www/dasflex # Adjust to taste
+$ export N_ARCH=/                # not using shared filesys, no need to separate binaries
 ```
 
 Build and install commands can run without `sudo` if the install directory
@@ -77,32 +68,62 @@ $ sudo mkdir $PREFIX
 $ sudo chown $LOGNAME $PREFIX
 ```
 
-The following sequence will build, test, and install das2C and das2py
-if you have all prerequisite libraries installed:
+1. We're going to build this in layers. The lowest layer contains the C libraries and fast
+   stream parsers.
+
+   ```bash
+   $ cd das2C
+   $ make
+   $ make test          # Contacts remote services, okay if some network tests fail
+   $ make util_install  # Only installs the stream processor binaries, not dev files
+   $ cd ../
+   ```
+   When this step is complete you should see the following:
+   ```bash
+   $ ls $PREFIX/bin
+   das1_ascii        das1_inctime          das2_bin_avgsec  das2_cache_rdr  das2_hapi
+   das2_psd          das3_test             das1_bin_avg     das2_ascii      das2_bin_peakavgsec
+   das2_from_das1    das2_histo            das3_csv         das1_fxtime     das2_bin_avg
+   das2_bin_ratesec  das2_from_tagged_das1 das2_prtime      das3_node
+   ```
+
+2. Next add the python layer.  First define a virtual environment so that server 
+   packages are separate from your system echosystem.  For example:
+   ```bash
+   /usr/bin/python3.12 -m venv $PREFIX/venv
+   $PREFIX/venv/bin/python -m pip install --upgrade pip
+   $PREFIX/venv/bin/python -m pip install build
+   ```
+   Then build and install the python library using your new python virtual environment.  The
+   build script will need to find das2C libraries.
+   ```bash
+   $ env DAS2C_INCDIR=$PWD/das2C DAS2C_LIBDIR=$PWD/das2C/build. $PREFIX/venv/bin/python -m build ./das2py
+   # Don't forget the '.' at the end of 'build.'.
+   $ $PREFIX/venv/bin/python -m pip install das2py/dist/das2py-*.whl
+   ```
+
+3. Now build and install the server itself:
+   ```bash
+   $ $PREFIX/venv/bin/python -m build ./dasFlex
+   $ $PREFIX/venv/bin/python -m pip install ./dist/dasflex*whl
+   ```
+   This step provides the toplevel server scripts, you can see these in your virtual
+   environment via:
+   ```bash
+   $ ls $PREFIX/venv/bin
+   dasflex_cgilog    dasflex_mkroot   dasflex_cgimain   dasflex_todo
+   dasflex_cupdate   dasflex_websocd  dasflex_das2test
+   # Among other a few other items
+   ```
+
+## Configure
+
+If all the steps above completed, you now have all tools to setup an run a server but no 
+server is defined.  To do so run the `dasflex_mkroot` script.
 
 ```bash
-$ cd das2C
-$ make
-$ make test     # Contacts remote services, okay if those tests fail
-$ make install
-$ cd ../
-
-$ cd das2py
-$ make 
-$ make test     # Also contacts remote servers, okay if those tests fail
-$ make install
-$ cd ../
-```
-
-Now build and install the python module and example configuration files.
-Set `--install-lib` and `--prefix` as indicated, unless you want to hand
-edit dasflex.conf after installation.  There is no need to run `build`
-before this step.
-
-```bash
-$ cd ../dasFlex
-$ python${PYVER} setup.py install --prefix=${PREFIX} --install-lib=${PREFIX}/lib/python${PYVER}
-$ make install
+$ $PREFIX/venv/bin/dasflex_mkroot -h  # See help options first
+$ $PREFIX/venv/bin/dasflex_mkroot $PREFIX "Test_Server"
 ```
 You can add the argument `--no-examples` to avoid installing the example
 data sources if these are not desired.

@@ -41,6 +41,10 @@ environments and depends on the following tools:
 
 ## Software Installation
 
+> Currently not all packages are in PyPI, and the system dependencies are
+> not distributed as .deb or .rpm files.  Build python packages from source
+> using the instructions in [ManualBuild.md](docs/ManualBuild.md)
+
 For Conda Packages (uncommon) issue:
 ```bash
 conda install -c dasdevelopers dasflex
@@ -54,8 +58,6 @@ version of python you wish to use for the server.
 /path/to/your/python -m pip install dasFlex
 ```
 
-To build from source, see instructions in [ManualBuild.md](docs/ManualBuild.md)
-
 ## Server Root Setup
 
 All configuration data for the dasFlex web-service itself consists of plain
@@ -66,7 +68,8 @@ To setup a server root area run `dasflex_mkroot`.  If you're using a python
 virtual environment you'll find the script installed under VENV_ROOT/bin.
 
 ```bash
-dasflex_mkroot /var/www/dasflex   # Just an example, adjust to taste
+dasflex_mkroot -h                              # see the help text first
+dasflex_mkroot /var/www/dasflex  "Test_Server" # For example, adjust to taste
 ```
 
 The only file that the main CGI programs need to know about is `dasflex.conf`. 
@@ -82,69 +85,49 @@ the SERVER_NAME, SERVER_ID settings.
 
 Apache configurations vary widely by Linux distribution and personal taste.
 The following procedure is provided as an example and has been tested on
-CentOS 7.
+Rocky Linux 9.  It assumes you're using a python virtual environment to host
+the main server scripts.
 
-First determine which directory on your server maps to an Apache HTTPS CGI
-directory.  To provide better URLs for your site add the line:
-
+In the root of your SSL server, or in a `<VirtualHost>` section:
 ```apache
-ScriptAlias /das/ "/var/www/cgi-das/"
-```
-
-directly under the line:
-
-```apache
-ScriptAlias /cgi-bin/ "/var/www/cgi-bin/"
-```
-
-inside the `<IfModule alias_module>` section of httpd.conf.  
-
-Of course the cgi-das directory will have to be created. and on CentOS anyway, the
-proper SELinux context applied:
-```bash
-sudo mkdir /var/www/cgi-das
-# You should apply a proper SELinux context to this directory, though the author
-# does not know how to do so.  Any contributions on this manner are welcome as
-# SELinux does not report to the console and audit logs are ususally empty.
-```
-
-Then provide configuration information for your `/var/www/cgi-das` directory
-inside the `/etc/httpd/conf.d/ssl.conf` file.  We're editing the *ssl.conf*
-instead of httpd.conf because das2 clients may transmit passwords. 
-
-
-```apache
-<Directory "/var/www/cgi-das">
-  Options ExecCGI FollowSymLinks
+Alias /stream /var/www/dasflex/venv/bin/dasflex_cgimain
+<Location /stream>
 
   # Provide CGI scripts with the location of the dasflex.conf file.
   # The location used here is just an example and changes depending
   # on the area selected by the `dasflex_mkroot` command above.
   SetEnv DASFLEX_CONFIG /var/www/dasflex/etc/dasflex.conf
+  
+  # Allow HTTP basic authentication to propogate to main script
+  RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-  # Make sure Authorization HTTP header is available to dasFlex CGI scripts
+  Options ExecCGI FollowSymLinks
+  SetHandler cgi-script
+  RewriteEngine on
+</Location>
+
+Alias /log /var/www/dasflex/venv/bin/dasflex_cgilog
+<Location /log>
+  SetEnv DASFLEX_CONFIG /var/www/dasflex/etc/dasflex.conf
+  Options ExecCGI FollowSymLinks
+  SetHandler cgi-script
   RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
   RewriteEngine on
-
-  AllowOverride None
-  Require all granted
-</Directory>
+  Require ip <LOG_IP_1> <LOG_IP_2>
+</Location>
 ```
+For security the log end-point shouldn't be open to the world, hence the `<LOG_IP_1>`
+`<LOG_IP_2>` replacement text above.
 
 By default, authorization headers are not made available to CGI scripts.
 The re-write rule above allows the `Authorization` header to be passed down
 to the `dasflex_cgimain` script.  This is needed to allow your server to
 support password protected data sources.
 
-Now symlink the top level CGI scripts into your new CGI directory.  Choose
-the name of the symlink carefully as it will be part of the public URL for
-your site:
+## Try it out
 
-```bash
-$ cd /var/www/cgi-das
-$ sudo ln -s $PREFIX/bin/dasflex_cgimain server
-$ sudo ln -s $PREFIX/bin/dasflex_cgilog log
-```
+Point your web browser at the path in the `Alias` statements above and see 
+what you get.  It should be a simple text message instructing you to
 
 The main server script needs to be able to find the main log reader
 script and vice versa.  If you use something other than the default
@@ -158,7 +141,7 @@ Set the permissions of the log directory so that Apache can write logging
 information:
 
 ```bash
-$ chmod 0777 $PREFIX/log   # Or change the directory ownership
+$ chmod 0777 /var/www/dasflex/log   # Or change the directory ownership
 ```
 
 Finally, trigger a re-read of the Apache's configuration data:
@@ -167,66 +150,6 @@ Finally, trigger a re-read of the Apache's configuration data:
 $ sudo systemctl restart httpd.service
 $ sudo systemctl status httpd.service
 ```
-
-## Configure Apache + WebSocket
-
-The dasFlex server includes a websocket daemon for communicating with real-time
-data sources.  This is not needed for standard server functionality, but it is
-very useful for supporting hardware development, since technicians want to see 
-instrument data immediately.  The assumption in the instructions below is that 
-Apache will serve as the front door to the included **dasflex_websocd** daemon and
-will handle encryption/decription.  The websocket daemon will only listen to the
-local host and all backend communication between Apache and dasflex_websocd will
-be unencrypted.
-
-First make sure mode the following apache modules are enabled:
-```bash
-a2enmod proxy proxy_wstunnel proxy_http rewrite
-```
-For RHEL-like systems, check the conf files in `/etc/httpd/conf.modules.d`.
-
-Second in your applicable SSL server add the following.  If you're using 
-the default SSL server on Ubuntu the file is located at `/etc/apache2/sites-enabled/default-ssl.conf`
-or for RHEL, `/etc/httpd/conf.d/ssl.conf`.
-```
-<Location "/dasws/" >
-  RewriteEngine on
-  RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-  ProxyPreserveHost on
-  ProxyPass "ws://localhost:52242/dasws/"
-  ProxyPassReverse "ws://localhost:52242/dasws/"
-</Location>
-```
-Here the value ws://localhost:52242/dasws/ should be whatever you've specifed 
-for the `WEBSOCKET_URI` in your **dasflex.conf** file.
-
-A client program is included for testing your websocket server.  An example of
-running it for the included spectra example would be:
-```
-python3 dasflex/test/ws_test_client.py \
-   wss://localhost/dasws/examples/spectra/flexRT \
-   read.time.min=1979-03-01T12:26:11 \
-   read.time.max=1979-03-01T12:29:24 \
-   format.serial=text
-```
-
-The websock server should run as the same user as the regular CGI server.  This
-is critical because the log to the same files.  That bears reapeating:
-
-> **NOTE** Run dasflex_websocd as the apache user on your system.
-
-To do this the following command will work work on Debian and derivitives:
-```bash
-sudo su -s /usr/bin/bash -c "/path/to/dasflex_websocd 127.0.0.1 52242 -D /path/to/log/websock.pid" www-data
-```
-The user account on Rocky Linux is different, but otherwise the command is the 
-same.  A system-d unit file will be created as time permits.
-
-To stop your server send **SIGINT** to the runing daemon
-```bash
-sudo kill -INT $(cat /path/to/log/websock.pid)
-```
-
 ## Test the server
 
 Test the server by pointing your web browser at:
@@ -248,7 +171,7 @@ The CGI scripts and worker programs read thier configuration data from the
 file:
 
 ```bash
-$PREFIX/etc/dasflex.conf
+/var/www/dasflex/etc/dasflex.conf
 ```
 
 Take time to customize a few items in your config file such as the 
@@ -260,7 +183,7 @@ Take time to customize a few items in your config file such as the
 are the programs that generate the initial full resolution data streams.  The
 entire purpose of dasFlex and das2 clients is to leverage the output of
 your reader programs to produce efficient, interactive science data displays.
-Example readers are included in the `$PREFIX/examples` directory to assist you
+Example readers are included in the `/var/www/dasflex/examples` directory to assist you
 with the task of creating readers for your own data.  These examples happen to
 be written in python, however there is no requirement to use python for your
 programs, in fact much more efficent compiled languages such as Java,
@@ -285,15 +208,67 @@ All code in the examples directory (not including the temporary pycdf subdirecto
 is release under the UNLICENSE and may be used without restrictions of any kind.
 
 
-## Experimental Features
+## Experimental Feature: WebSocket support
 
-An initial websocket server is included in the package, but dependency handling 
-for it is not part of the setup (yet).  To install extra packages, such as trio_websocket
-the following custom test commands are handy if you're not using a virtual environment:
+The dasFlex server includes a websocket daemon for communicating with real-time
+data sources.  This is not needed for standard server functionality, but it is
+very useful for supporting hardware development, since technicians want to see 
+instrument data immediately.  The assumption in the instructions below is that 
+Apache will serve as the front door to the included **dasflex_websocd** daemon and
+will handle encryption/decription.  The websocket daemon will only listen to the
+local host and all backend communication between Apache and dasflex_websocd will
+be unencrypted.
+
+First add the trio-websocket package to your server virutal environment:
 
 ```bash
-pip install --target=/your/custom/pylib/dir trio_websocket
-export PYTHONPATH=/your/custom/pylib/dir
+$ /var/www/dasflex/venv/bin/python -m pip install trio_websocket
 ```
-Many of the old mission support software sets benefit from this install method.
 
+Next, make sure mode the following apache modules are enabled:
+```bash
+a2enmod proxy proxy_wstunnel proxy_http rewrite
+```
+For RHEL-like systems, check the conf files in `/etc/httpd/conf.modules.d`.
+
+Second in your applicable SSL server add the following.  If you're using 
+the default SSL server on Ubuntu the file is located at `/etc/apache2/sites-enabled/default-ssl.conf`
+or for RHEL, `/etc/httpd/conf.d/ssl.conf`.
+```
+<Location "/dasws/" >
+  RewriteEngine on
+  RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  ProxyPreserveHost on
+  ProxyPass "ws://localhost:52242/dasws/"
+  ProxyPassReverse "ws://localhost:52242/dasws/"
+</Location>
+```
+Here the value ws://localhost:52242/dasws/ should be whatever you've specifed 
+for the `WEBSOCKET_URI` in your **dasflex.conf** file.
+
+A client program is included for testing your websocket server.  An example of
+running it for the included spectra example would be:
+```
+$ python3 dasflex/test/ws_test_client.py \
+   wss://localhost/dasws/examples/spectra/flexRT \
+   read.time.min=1979-03-01T12:26:11 \
+   read.time.max=1979-03-01T12:29:24 \
+   format.serial=text
+```
+
+The websock server should run as the same user as the regular CGI server.  This
+is critical because the log to the same files.  That bears reapeating:
+
+> **NOTE** Run dasflex_websocd as the apache user on your system.
+
+To do this the following command will work work on Debian and derivitives:
+```bash
+sudo su -s /usr/bin/bash -c "/path/to/dasflex_websocd 127.0.0.1 52242 -D /path/to/log/websock.pid" www-data
+```
+The user account on Rocky Linux is different, but otherwise the command is the 
+same.  A system-d unit file will be created as time permits.
+
+To stop your server send **SIGINT** to the runing daemon
+```bash
+sudo kill -INT $(cat /path/to/log/websock.pid)
+```

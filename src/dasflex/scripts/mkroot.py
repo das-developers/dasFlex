@@ -120,21 +120,25 @@ def main():
 
 	sExeDir = dname(sys.executable)
 	if platform.system() != 'Windows':
-		sDef = "$ROOT/bin:%s:/usr/bin"%sExeDir
+		#sDef = "$ROOT/bin:%s:/usr/bin"%sExeDir
+		sDef = "$ROOT/bin:/usr/bin"
+		sTight = "$ROOT/bin"
 	else:
 		sWinDir = os.getenv('systemroot')
-		sDef = "%%ROOT%%\\bin;%s\\;%s\\System32"%(sExeDir, sWinDir)
+		#sDef = "%%ROOT%%\\bin;%s\\;%s\\System32"%(sExeDir, sWinDir)
+		sDef = "%%ROOT%%\\bin;%s\\System32"%sWinDir
+		sTight = "%%ROOT%%\\bin"
 	psr.add_argument(
-		'-b','--bin-path', default=sDef, help="Set the path for any readers or other "+\
-		"sub-programs launched by dasFlex. Always put the path to the servers own "+\
-		"executable scripts first! Defaults to: '%s'"%sDef, dest="sBinPath",
-		metavar="PATH"
+		'-b','--bin-path', default=sDef, metavar="PATH", dest="sBinPath",
+		help="Set the path for any reducers or other sub-programs launched by dasFlex."+\
+		" Defaults to: '%s'."%sDef + " For tighter security you can restrict this to "+\
+		"just %s"%sTight
 	)
 	# Walk up stack to SOMEPLACE from SOMPLACE/dasflex/scripts/mkroot.py
 	sDef = dname(dname(dname(os.path.abspath(inspect.stack()[0][1]))))
 	psr.add_argument(
 		'-p','--py-path', default=sDef, help="Set the module path for dasFlex components."+\
-		"Defaults to: '%s'.  There is rarely a reason to change this"%sDef, dest="sPyPath",
+		" Defaults to: '%s'.  There is rarely a reason to change this"%sDef, dest="sPyPath",
 		metavar="PATH"
 	)
 
