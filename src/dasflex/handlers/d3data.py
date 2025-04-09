@@ -300,6 +300,7 @@ def handleReq(modUtil, sReqType, dConf, fLog, form, sPathInfo):
 
 	fLog.write("   Exec Host: %s"%platform.node())
 	fLog.write("   Exec Cmd: %s"%sCmd)
+	fLog.write("   Out File: %s"%sOutFile)
 		
 	(nRet, sStdErr, bHdrSent, bMsgBody) = U.command.sendCmdOutput(
 		fLog, sCmd, sMimeType, sContentDis, sOutFile

@@ -641,7 +641,7 @@ def main():
 	global das2 # To be replaced with the loaded module
 
 	psr = argparse.ArgumentParser(
-		usage="%%prog [options] [-U URL|-C FILE]",
+		usage="dasflex_das2test [options] [-U URL|-C FILE]",
 		prog="dasflex_das2test",
 		description="""
 Checks all data sources on a das2 compatable server to determine if data from
@@ -867,6 +867,7 @@ legacy das2 reponses.
 	
 		sDsdfUrl = '%s?server=dsdf&dataset=%s'%(sDas2Srv, sDataSource)
 		fDas2Stream = urllib.request.urlopen(sDsdfUrl)
+		log.info("")
 		log.info("Checking: Server '%s' Source '%s'"%(sDas2Srv, sDataSource))
 		pkt = readPkt(log, fDas2Stream)
 		if pkt.nType != Das2Pkt.STREAM_HDR:

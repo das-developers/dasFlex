@@ -1822,11 +1822,12 @@ def _loadJson(fLog, sInPath):
 		dObj = json.load(fIn)
 	return dObj
 
-def _urlToCatPath(U, dConf, sUrl):
+def _urlToCatPath(U, dConf, fLog, sUrl):
 	"""Convert a URL back to a local catalog object path, or return None
 	"""
 	sScriptUrl = U.webio.getScriptUrl(dConf)
-	if not sUrl.startswith(sScriptUrl): return None
+	if not sUrl.startswith(sScriptUrl):
+		return None
 
 	sUrlRoot     = "%s/source"%sScriptUrl
 	sFileSysRoot = pjoin(dConf['DATASRC_ROOT'], 'root')
@@ -1890,7 +1891,7 @@ def handleReq(U, sReqType, dConf, fLog, form, sPathInfo):
 			if ('type' in dNode['catalog'][sSource]) and \
 				(dNode['catalog'][sSource]['type'] == 'HttpStreamSrc'):
 				sSrcUrl = dNode['catalog'][sSource]['urls'][0]
-				sSrcPath = _urlToCatPath(U, dConf, sSrcUrl)
+				sSrcPath = _urlToCatPath(U, dConf, fLog, sSrcUrl)
 				break
 		if not sSrcPath:
 			return U.webio.notFoundError(
