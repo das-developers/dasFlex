@@ -274,6 +274,11 @@ def main():
 		perr('No module named dasflex.util under %s\n'%dConf['MODULE_PATH'])
 		return 20
 
+	# A source set is just a:
+	#
+	# (key) path to the containing directory for flex.json, das2.d2t, etc. 
+	# (value) path to all the contents of the directory.
+	#
 	dSrcSets = {}
 	getSrcSets(opts.sCatDir, dSrcSets, nMaxDepth=20, _n=0)
 

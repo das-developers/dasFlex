@@ -13,6 +13,8 @@
 #
 # though N_ARCH is still set for older install methods.
 
+# Make sure this matches with pyproject.toml
+VERSION:=0.4rc3
 
 ifeq ($(PYVER),)
 	PYVER=3
@@ -98,9 +100,9 @@ SRC_FILES:=$(patsubst %,src/dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
 
 .PHONY: build install distclean clean
 
-build: dist/dasflex-0.4rc2.tar.gz
+build: dist/dasflex-$(VERSION).tar.gz
 
-dist/dasflex-0.4rc2.tar.gz:$(SRC_FILES)
+dist/dasflex-$(VERSION).tar.gz:$(SRC_FILES)
 	python -m build 
 
 install:

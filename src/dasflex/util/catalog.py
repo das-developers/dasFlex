@@ -334,6 +334,10 @@ def updateFromSrc(dConf, sRootDir, sLocalId):
 	#                                                 juno.json
 	#                                        root.json
 
+
+	#print("Root=%s, local_id=%s"%(sRootDir, sLocalId))
+	#sys.exit(117)
+
 	(sTopSrc, sTopSrcDir) = topCat(sRootDir)
 
 	dPaths = sourceFiles(sRootDir, sLocalId)
@@ -391,6 +395,7 @@ def updateFromSrc(dConf, sRootDir, sLocalId):
 		for sItem in lItems:
 			if not sItem.endswith('.json'): continue
 
+			print("Reading: %s/%s"%(lDirs[i], sItem))
 			dItem = _loadJson(pjoin(lDirs[i], sItem))
 
 			dEntry = {'urls':[ "%s/%s"%(lUrls[i], sItem) ]}
@@ -417,7 +422,7 @@ def _gatherDas2List(dCatalog, sCatPath, sId):
 		sId - The Local ID by which this catalog is known
 
 	Returns:
-		A list of all souces and directorise below this point.  Empty catalogs
+		A list of all souces and directories below this point.  Empty catalogs
 		are ignored.
 	"""
 
@@ -438,7 +443,10 @@ def _gatherDas2List(dCatalog, sCatPath, sId):
 
 		# We can use the nice lable IF it's the same as the key when lowered
 		if dSubCat['label'].lower() == sSub.lower():  sSubId = dSubCat['label']
-		else: sSubId = sSub	
+		else: sSubId = sSub
+
+		#print(dSubCat['label'], sSub.lower())
+		#sys.exit(117)
 
 		if len(sId) > 0: sSubId = "%s/%s"%(sId, sSubId)
 
@@ -457,10 +465,10 @@ def _gatherDas2List(dCatalog, sCatPath, sId):
 		dSubCat = _loadJson(sSubPath)
 
 		# Now go looking for Das2 sources
-		for sKey in dSubCat['catalog']:
-			if dSubCat['catalog'][sKey]['type'] == 'Das2DSDF':
+		for sSrc in dSubCat['catalog']:
+			if dSubCat['catalog'][sSrc]['type'] == 'Das2DSDF':
 				
-				if dSubCat['label'].lower() == sKey.lower(): sSubId = dSubCat['label']
+				if dSubCat['label'].lower() == sSub.lower(): sSubId = dSubCat['label']
 				else: sSubId = sSub
 
 				if len(sId) > 0: sSubId = "%s/%s"%(sId, sSubId)
@@ -587,7 +595,7 @@ def updateLists(dConf, sRoot=None):
 
          /some/path/collection/
 
-   This is just an internal local convertion for das2py-servers and is not
+   This is just an internal local convention for das2py-servers and is not
    a property of federated das catalogs when accessed in the normal matter.
 	"""
 
