@@ -4,6 +4,7 @@ compatable with autoplot.
 """
 
 import sys
+import ssl
 import urllib
 import urllib.parse
 import urllib.request
@@ -739,7 +740,10 @@ legacy das2 reponses.
 		action="store", help="Attempt to plot data using this autoplot "+\
 		"EXECutabale.  By default data are loaded but not plotted."
 	)
-	
+	psr.add_argument(
+		'-i', '--ignore-cert', dest="bIgnoreCert", action="store_true", default=False,
+		help="Ignore HTTPS certificate errors.  Normally these should receive attention"
+	)
 	
 	opts = psr.parse_args()
 
@@ -813,12 +817,20 @@ legacy das2 reponses.
 		
 	nTestedDsdfs = 0
 	nErrorDsdfs = 0
+
+	# Use a custom SSL context if cert checking is ignored
+	ctx = None
+	if opts.bIgnoreCert:
+		log.info("Ignoring host certificate checks by user request")
+		ctx = ssl.create_default_context()
+		ctx.check_hostname = False
+		ctx.verify_mode = ssl.CERT_NONE
 	
 	dMessages = {}  # Collection of failure messages to send out
 	
 	log.info("Sending das2.2 list message")
 	sURL = '%s?server=list'%sDas2Srv
-	fDsdfs = urllib.request.urlopen(sURL)
+	fDsdfs = urllib.request.urlopen(sURL, context=ctx)
 	sDsdfs = fDsdfs.read().decode(encoding='utf-8')
 	fDsdfs.close()
 	lDsdfs = sDsdfs.split('\n')
@@ -866,7 +878,7 @@ legacy das2 reponses.
 			sDescription = '|'.join(lTmp[1:])
 	
 		sDsdfUrl = '%s?server=dsdf&dataset=%s'%(sDas2Srv, sDataSource)
-		fDas2Stream = urllib.request.urlopen(sDsdfUrl)
+		fDas2Stream = urllib.request.urlopen(sDsdfUrl, context=ctx)
 		log.info("")
 		log.info("Checking: Server '%s' Source '%s'"%(sDas2Srv, sDataSource))
 		pkt = readPkt(log, fDas2Stream)
