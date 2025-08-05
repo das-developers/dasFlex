@@ -1,7 +1,7 @@
 # dasFlex command templates
 
-The most important job of the dasflex server is to convert URLs into data
-streams.  Since actual data file reading is handled by sub-programs, the
+The most important job of the dasFlex server is to convert URLs into data
+streams.  Since actual data file reading is handled by sub-programs, this
 means URLs must be converted to command pipe lines. 
 ```
         +----------+                      +-------+
@@ -9,12 +9,12 @@ URL --> |  server  | --> command line --> | Shell | --> data stream
         +----------+                      +-------+
 ```
 
-For the das v3.0 API, the path component of the URL selects the data source.
-When data are requested, the URL GET parameters define how the source
-should operate.
+For the das version 3 API: 
+  * The path component of the URL selects the data source.
+  * The URL GET parameters define how the source should operate.
 
 The older das2py-server had a rather fixed translation between URL parameters
-and command lines.  A dasFlex server makes the translation between HTTP GET
+and command lines.  DasFlex servers make the translation between HTTP GET
 parameters and command lines more flexible by defining each command to be run
 via a template.
 
@@ -27,9 +27,9 @@ There are default templates for:
 
 The default templates are located in the `etc/commands.json` file in your
 server root install directory.  Most of the default stream manipulation 
-commands in default templates are provided by the [das2C](https://github.com/das-developers/das2C) 
-module, as these stream processes are fast C programs with low memory
-overhead.
+commands in default templates are provided by the 
+[das2C](https://github.com/das-developers/das2C) module, as these stream
+processors are fast C programs with low memory overhead.
 
 **Note** The command templates defined here do not form a complete text
 transformation language.  An arbitrary set of query keyword value pairs
@@ -58,10 +58,10 @@ The basic format of a replacement template is:
 where the `PARAM_SELECTOR` is one of:
 
   * An HTTP query parameter key
-  * An HTTP query parameter key and flag
+  * An HTTP query parameter key plus a sub-key in the value
 
-The special character `@` may be used to reference the parameter value in the
-replacement text.
+The special character `@` may be used to reference the parameter, or 
+sub-value, in the replacement text.
 
 ### Example Set 1: Translation of simple query parameters
 
@@ -146,6 +146,15 @@ Template:   #[params( |mfr|=) # -mfr @ # ]
 Output:     -mfr 13ExEw
 ```
 
+All three-section templates define optional parameters.  With the following 
+pattern being the most common:
+```
+#[ PARAM # @ #]
+```
+This template directive would do the following: 
+  * If the HTTP GET parameter named `PARAM` is present, output it's unadorned value.
+  * If it's absent, output nothing, not even a space.
+
 ## Required Parameters
 
 To denote a required parameter leave off the third section of the template.  With the
@@ -154,32 +163,25 @@ to output if a parameter is not given, and thus the template cannot handle the
 translation.  This means *required* parameters have the following form:
 
 ```
-   #[ PARAM_SELECTOR # output when selector matches ]
+   #[ PARAM # output when selector matches ]
 ```
 
-A very common pattern for required parameters is to output the value of the parameter
-if detected.
+A very common pattern for required parameters is just to output the value of the GET parameter.
 ```
-#[ PARAM_SELECTOR # @ ]
+#[ PARAM # @ ]
 ```
 
 Since this is so common, an even shorter template form is recognized:
 ```
-#[ PARAM_SELECTOR ]
+#[ PARAM ]
 ```
 
-which is equivalent to `#[ PARAM_SELECTOR # @ ]` above.
-
-A very common patter for option parameters is:
-```
-#[ PARAM_SELECTOR # @ #]
-```
-Thus, nothing is output if the parameter is not present in the GET query.
+which is equivalent to `#[ PARAM # @ ]` above.
 
 
 ## Predefined Parameters
 
-When templates are evaluated by dasflex server, the following "parameters" are aways
+When templates are evaluated by dasFlex server, the following "parameters" are aways
 defined and may be thus may always be used, even when not provided by the client 
 program:
 
