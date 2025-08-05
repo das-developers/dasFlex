@@ -1,4 +1,4 @@
-# das2-pyserver command templates
+# dasFlex command templates
 
 The most important job of the dasflex server is to convert URLs into data
 streams.  Since actual data file reading is handled by sub-programs, the
@@ -13,10 +13,10 @@ For the das v3.0 API, the path component of the URL selects the data source.
 When data are requested, the URL GET parameters define how the source
 should operate.
 
-In older versions of the server there was a rather fixed translation between
-URL parameters and command lines.  The v3.0 server makes the translation
-between HTTP GET parameters and command lines more flexible by defining each
-command to be run via a template.
+The older das2py-server had a rather fixed translation between URL parameters
+and command lines.  A dasFlex server makes the translation between HTTP GET
+parameters and command lines more flexible by defining each command to be run
+via a template.
 
 There are default templates for:
 
@@ -34,7 +34,7 @@ overhead.
 **Note** The command templates defined here do not form a complete text
 transformation language.  An arbitrary set of query keyword value pairs
 cannot be translated into an arbitrary set of output text, and that's
-okay.  Here das2 developers are providing a template tool that's sufficently
+okay.  Here das developers are providing a template tool that's sufficently
 flexible to handle the many data streaming cases encountered over the years,
 without going overboard.
 
@@ -65,8 +65,8 @@ replacement text.
 
 ### Example Set 1: Translation of simple query parameters
 
-In the following example the PARAM_SELECTOR is only triggered on the presence or absence 
-of an HTTP GET parameter.
+In the following example, the PARAM_SELECTOR is only triggered on the presence 
+or absence of an HTTP GET parameter.
 
 The template:
 ```
@@ -85,7 +85,7 @@ Template Output:  -beg 2020-01-14
 
 ### Example Set 2: Translation of a query parameter values with sub-parameters
 
-Query sub-parameters bare explaination.  Though it wasn't the original intent of
+Query sub-parameters bear explaination.  Though it wasn't the original intent of
 the HTTP query interface, it's all too common for protocols to pack many different
 individual settings into the value of a single HTTP query parameter, with each one
 acting as it's own sub-parameter. Take for example the following URL snippit:
@@ -100,14 +100,14 @@ RPWS data source:
 ```
    ?params=lfdr:ExEw,mfdr:ExEw,mfr:13ExEw,hfr:ABC12EuEvExEw
 ```
-which has *values* for each flag.  Obviously each flag in this example should be
-it's own query parameter.
+which has *values* for each flag.  Obviously each flag in this example should have
+been it's own query parameter.
 
 To deal with this all too common situation, the PARAM_SELECTOR may denote:
    1. a parameter keyword  (required)
    2. a sub-parameter keyword
-   3. a separator for sub-parameters
-   4. a separator for sub-parameters and thier values
+   3. a separator token for sub-parameters
+   4. a separator token for sub-parameters and thier values
 
 Here's the full syntax for a PARAM_SELECTOR:
 ```
@@ -121,9 +121,9 @@ Here's a few examples demonstrating flag values of increasing complexity.
 
 Flag values separated by commas
 ```
-HTTP GET:   bands=ExBy
+HTTP GET:   bands=Ex,By
 
-Templates:  #[bands(|By) # --magnetic # ]  #[bands(,|Ex) # --electric # ]
+Templates:  #[bands(,|By) # --magnetic # ]  #[bands(,|Ex) # --electric # ]
 
 Output:     --magnetic --electric
 ```
@@ -170,15 +170,22 @@ Since this is so common, an even shorter template form is recognized:
 
 which is equivalent to `#[ PARAM_SELECTOR # @ ]` above.
 
+A very common patter for option parameters is:
+```
+#[ PARAM_SELECTOR # @ #]
+```
+Thus, nothing is output if the parameter is not present in the GET query.
+
 
 ## Predefined Parameters
 
 When templates are evaluated by dasflex server, the following "parameters" are aways
-defined and may be thus may always be used:
+defined and may be thus may always be used, even when not provided by the client 
+program:
 
-   * `_SERVER_` - The URL to the das2-pyserver root URL, for example https://jupiter.physics.uiowa.edu/das/server
+   * `_SERVER_` - The URL to the dasFlex root URL, for example https://jupiter.physics.uiowa.edu/das/server
 
-   * `_LOCAL_ID_` - The local ID of the datasource, for example Juno/WAV/Survey
+   * `_LOCAL_ID_` - The local ID of the data source, for example Juno/WAV/Survey
 
    * `_FILENAME_` - The automatically calculated output filename in case the attachment
       disposititon should be used
