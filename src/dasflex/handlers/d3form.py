@@ -1751,8 +1751,8 @@ function %s(sActionUrl) {
     let formData = new FormData(this);
     let urlBuilder = event.target.action+"?";
     let components = event.target.action.split("/");
-    let expectedResponseName = (components.length < 9) 
-		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}_${components[8].replace("-","")}`;
+    let expectedResponseName = (components.length < 10) ?
+		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}_${components[8].replace("-","")}`
 		:
 		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}-${components[8].replace("-","")}_${components[9].replace("_","-")}`;
     let count = 0;
