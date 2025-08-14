@@ -1290,7 +1290,7 @@ def prnHttpSource(U, fLog, dConf, dSrc, fOut):
 	
 	   and the httpParmas element is added as a variable.  When called 
 	   onSubmit inspects the controls registered in 'httpParams' and sets
-	   new control values.  Finnally the output controls that have data 
+	   new control values.  Finally the output controls that have data 
 	   values are given a name so that they can be submitted, and the 
 	   input radio controls have thier names removed.
 
@@ -1751,7 +1751,10 @@ function %s(sActionUrl) {
     let formData = new FormData(this);
     let urlBuilder = event.target.action+"?";
     let components = event.target.action.split("/");
-    let expectedResponseName = `tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}-${components[8].replace("-","")}_${components[9].replace("_","-")}`;
+    let expectedResponseName = (components.length < 9) 
+		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}_${components[8].replace("-","")}`;
+		:
+		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}-${components[8].replace("-","")}_${components[9].replace("_","-")}`;
     let count = 0;
     let entries = {};
 	let lKeep = [];
