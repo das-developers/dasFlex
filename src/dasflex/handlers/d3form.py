@@ -1329,8 +1329,8 @@ def prnHttpSource(U, fLog, dConf, dSrc, fOut):
 		if _isTrue(dProto['authentication'], 'required'):
 			sout(fOut, '<p><i><span class="error">Restricted data source</span>.</i>')
 			if 'REALM' in dProto['authentication']:
-				 sout(fOut, 'You will be asked to authentication to the realm "' +\
-				      '<b>%s</b>" on submit.</p>'%dProto['authentication']['realm'])
+				sout(fOut, 'You will be asked to authentication to the realm "' +\
+					'<b>%s</b>" on submit.</p>'%dProto['authentication']['realm']) 
 			else:
 				sout(fOut, "You will be asked to authentication on submit.</p>")
 
@@ -1583,7 +1583,7 @@ def prnHttpSource(U, fLog, dConf, dSrc, fOut):
 		sout(fOut, """
 <script>
 function %s(sActionUrl) {
-   const dParams = %s;
+   	const dParams = %s;
 	
 	// Strip this from outgoing control id's, to get the output control
 	// name.  It was added to keep out controls from different forms separate.
@@ -1741,7 +1741,14 @@ function %s(sActionUrl) {
 				sLabel, sFuncName, _getAction(sBase) 
 			))
 		sout(fOut, '</div>')
-
+	
+	sOutFile = """
+	(components.length < 10) ?
+		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}_${components[8].replace("-","")}`
+		:
+		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}-${components[8].replace("-","")}_${components[9].replace("_","-")}`;
+	"""
+	
 	sFetchForm = """
 <script>
   document.getElementById('%s').addEventListener('submit', function(event) {
@@ -1751,10 +1758,7 @@ function %s(sActionUrl) {
     let formData = new FormData(this);
     let urlBuilder = event.target.action+"?";
     let components = event.target.action.split("/");
-    let expectedResponseName = (components.length < 10) ?
-		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}_${components[8].replace("-","")}`
-		:
-		`tr-${components[5].slice(0,3)}_${components[6]}_${components[7]}-${components[8].replace("-","")}_${components[9].replace("_","-")}`;
+    let expectedResponseName = %s;
     let count = 0;
     let entries = {};
 	let lKeep = [];
@@ -1782,6 +1786,9 @@ function %s(sActionUrl) {
       method: 'GET',
     })
     .then(response => {      
+	  if(response.headers.get("content-disposition")) {
+	  	expectedResponseName=response.headers.get("content-disposition").split("filename=")[1].replace("\\\"", "").replace("\\\"","");
+	  }
       return response.blob()}) // Convert response to Blob
     .then(blob => {
       // Create a temporary link element
@@ -1791,13 +1798,14 @@ function %s(sActionUrl) {
       tempLink.style.display = 'none';
       document.body.appendChild(tempLink);
       tempLink.click(); // Programmatically click the link to trigger the download
+	  URL.revokeObjectURL(tempLink.href);
       document.body.removeChild(tempLink); // Clean up
     })
     .catch(error => console.error('Error:', error));
     
   });
 </script>
-"""%(sFormId, sXorGroupName)
+"""%(sFormId, sOutFile, sXorGroupName)
 	sout(fOut, sFetchForm)
 
 	sout(fOut, '</form>\n<br>')
