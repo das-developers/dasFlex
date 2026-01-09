@@ -38,9 +38,10 @@ CONTACT_URL  = "https://update-dasflex.conf.nowhere.edu/~someone/"
 DATASRC_INC  = "%(ROOT_DIR)s/sdef/include"
 
 # If using simple local authentication, the name of the group and users files
-# Version 3.1 of the server should add better authentication methods
-USER_PASSWD = "%(ETC_DIR)s/passwd"
-USER_GROUP  = "%(ETC_DIR)s/group"
+PASSWD_FILE = "%(ETC_DIR)s/passwd"
+GROUP_FILE  = "%(ETC_DIR)s/group"
+
+# The file defining stream format or output file types
 MIME_FILE   = "%(ETC_DIR)s/mime.json"
 
 # The module path for loading utilities and handles, there can be

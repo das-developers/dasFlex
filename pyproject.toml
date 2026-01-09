@@ -1,6 +1,6 @@
 [project]
 name = "dasflex"
-version = "0.4rc3"
+version = "0.5rc1"
 dependencies = [ "das2py>=3.0rc4"]
 description = "A multi-format data stream server implementing das3 and other APIs"
 readme = "README.md"
@@ -8,9 +8,6 @@ requires-python = ">=3.7"
 license = "LGPL-3.0-only"
 authors = [
    {name = "C Piker", email = "cpiker@users.noreply.github.com"}
-]
-maintainers = [
-	{name = "K Steele", email = "KaiwenS7@users.noreply.github.com"}
 ]
 keywords = ["space-physics", "magnetosphere", "das2", "das3", "nasa-cdf"]
 

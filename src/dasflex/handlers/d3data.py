@@ -60,7 +60,7 @@ def _getInternal(fLog, dConf, sPathInfo):
 		)
 		return (None, None)
 
-	# Pop off the last item and use it as the form handling convertion (aka the
+	# Pop off the last item and use it as the form handling convention (aka the
 	# actual source type)
 	if sLocalId.endswith('/'): sLocalId = sLocalId[-1]
 
@@ -266,6 +266,21 @@ def handleReq(modUtil, sReqType, dConf, fLog, form, sPathInfo):
 					dParams[ dTranslate[ sKey ] ] = urlDec(sVal)
 			else:
 				dParams[sKey] = urlDec(sVal)
+
+	# Using translated parameters, see if we pass authentication checks
+	if 'authorization' in dSrc:
+		(nRet, sRealm) = U.auth.authorize(dConf, fLog, dSrc, dParams)
+
+		if nRet == U.auth.AUTH_SRV_ERR:
+			U.webio.serverError(fLog, "Server authentication misconfigured")
+			return 8
+
+		if nRet == U.auth.AUTH_FAIL:
+			sys.stdout.write("Status: 401 Authorization Required")
+			sys.stdout.write('WWW-Authenticate: Basic realm="%s"\r\n'%sRealm)
+			return 0
+
+		# Only other status out of auth is AUTH_SUCCESS, which means we proceed
 
 	# Get the triggered commands of each type
 	lTmp = [ "%s=%s"%(sKey, dParams[sKey]) for sKey in dParams]

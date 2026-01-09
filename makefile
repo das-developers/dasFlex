@@ -14,11 +14,7 @@
 # though N_ARCH is still set for older install methods.
 
 # Make sure this matches with pyproject.toml
-VERSION:=0.4rc3
-
-ifeq ($(PYVER),)
-	PYVER=3
-endif
+VERSION:=0.5rc1
 
 ifeq ($(PY_BIN),)
 PY_BIN=$(which python)
@@ -32,22 +28,27 @@ $(error Neither python nor python3 were found, set PY_BIN to the path to your py
 endif
 endif
 
+# ########################################################################### #
+# Try to predict the wheel name and our das2py depenency name. This is a fool's
+# game but most standard tools will skip this makefile anyway and jump straight
+# to a python -m build style command. I'd prefer not to do that so than I can 
+# run unittests without consulting pypi.
 
-# Only affects the *_old targets
-ifeq ($(PREFIX),)
-	PREFIX:=/var/www/dasflex
-endif
+PY_VER_TOK:=$(shell $(PY_BIN) -c "import sys; print('%d%d'%sys.version_info[0:2])")
+PY_MAJ_VER_TOK:=$(shell $(PY_BIN) -c "import sys; print(sys.version_info[0])")
 
-ifeq ($(INST_ETC),)
-	INST_ETC:=$(PREFIX)/etc
-endif
+WHEEL_FILE:=dasflex-$(VERSION)-py$(PY_MAJ_VER_TOK)-none-any.whl
+VENV_MOD:=venv
 
-ifeq ($(N_ARCH),)
-	N_ARCH:=/   
-endif
+DAS_MOD:=das2py
+DAS_VER:=3.0rc5
 
-PYVER:=$(shell $(PY_BIN) -c "import sys; print('%d.%d'%sys.version_info[:2])")
-# ... end old env vars
+DAS_WHEEL_FILE:=$(DAS_MOD)-$(DAS_VER)-cp$(PY_VER_TOK)-cp$(PY_VER_TOK)-linux_x86_64.whl
+DAS_WHEEL_PATH=$(abspath ../das2py/dist/$(DAS_WHEEL_FILE))
+
+PIP_ARGS=--isolated --no-python-version-warning
+
+# ########################################################################### #
 
 SRC:= \
 __init__.py \
@@ -98,43 +99,34 @@ root/Examples/Waveform/vgr_data/WFROWPFX.FMT \
 
 SRC_FILES:=$(patsubst %,src/dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
 
-.PHONY: build install distclean clean
+# ########################################################################### #
 
-build: dist/dasflex-$(VERSION).tar.gz
+.PHONY: build test install distclean clean
 
-dist/dasflex-$(VERSION).tar.gz:$(SRC_FILES)
-	python -m build 
+# We have no C-code here, easy to guess the wheelfile name (until some new
+# fad takes over)
+build: dist/$(WHEEL_FILE)
+
+dist/$(WHEEL_FILE):$(SRC_FILES)
+	$(PY_BIN) -m build
+
+
+./dist_venv/bin/python:
+	# Creating temporary environment for testing
+	$(PY_BIN) -m $(VENV_MOD) dist_venv
+
+# Run unit tests.  Only auth.py has unittests so far
+test: ./dist_venv/bin/python
+	./dist_venv/bin/python -m pip install $(PIP_ARGS) $(DAS_WHEEL_PATH)
+	./dist_venv/bin/python -m pip install $(PIP_ARGS) dist/$(WHEEL_FILE)
+	./dist_venv/bin/python -m dasflex.webutil.auth
 
 install:
-	@python -m pip uninstall -y ./dist/dasflex*.whl
-	python -m pip install --pre ./dist/dasflex*.whl
+	@python -m pip uninstall -y ./dist/$(WHEEL_FILE)
+	python -m pip install --pre ./dist/$(WHEEL_FILE)
 
 distclean:
-	-rm -r dist
+	-rm -r dist dist_venv
 
 clean:
-	-rm -r dist
-
-# Non-venv installer for use by older projects
-build_old:
-	$(PY_BIN) legacy/setup.py build
-
-install_old_noex:
-	$(PY_BIN) legacy/setup.py install --prefix=${PREFIX} \
- 	   --install-lib=${PREFIX}/lib/python${PYVER} \
- 	   --install-scripts=${PREFIX}/bin/${N_ARCH} --no-examples
-	@echo "-------------------------------------------------------------------"
-	@echo "Scripts installed, run dasflex_mkroot to define your server and "
-	@echo "symlink dasflex_cgimain and dasflex_logmain from your designated "
-	@echo "CGI bin directory"
-	@echo "-------------------------------------------------------------------"
-
-install_old:
-	python${PYVER} legacy/setup.py install --prefix=${PREFIX} \
-	  --install-lib=${PREFIX}/lib/python${PYVER} \
-	  --install-scripts=${PREFIX}/bin/${N_ARCH}
-	@echo "-------------------------------------------------------------------"
-	@echo "Scripts installed, run dasflex_mkroot to define your server and "
-	@echo "symlink dasflex_cgimain and dasflex_logmain from your designated "
-	@echo "CGI bin directory"
-	@echo "-------------------------------------------------------------------"
+	-rm -r dist dist_venv

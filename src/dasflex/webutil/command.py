@@ -361,7 +361,7 @@ def substitute(fLog, sFullTplt, dParams):
 	single command.  Used by the pipeline creator.
 
 	In general the parameter intepretation is complex enough that it can handle
-	sub-parameters cammed into a single GET parameter. See:
+	sub-parameters crammed into a single GET parameter. See:
 	
 	  docs/CmdTemplates.md
 

@@ -157,6 +157,47 @@ def _searchNestedDict(fLog, d, l):
 					for result in _searchNestedDict(fLog, di, l):
 						yield result
 
+def _fmtGranny(s):
+	"""
+	Replace instances of !a!n with <sup></sup> and !b!n with <sub></sub>
+	makes sure the count of instances is reasonable.  Poorly formated
+	items are return unchanged.
+	"""
+	sLow = s.lower()
+	lNew = []
+
+	need_close = False
+	is_sup = False
+	while len(sLow) > 0:
+		if sLow[:2] == '!a':
+			if need_close: return s
+			need_close = True
+			lNew.append('<sup>')
+			sLow = sLow[2:]
+			is_sup = True
+
+		elif sLow[:2] == '!b':
+			if need_close: return s
+			need_close = True
+			lNew.append('<sub>')
+			sLow = sLow[2:]
+			is_sup = False
+
+		elif sLow[:2] == '!n':
+			if not need_close: return s
+			need_close = False
+			if is_sup: lNew.append('</sup>')
+			else: lNew.append('</sub>')
+			sLow = sLow[2:]
+
+		else:
+			lNew.append(sLow[0])
+			sLow = sLow[1:]
+
+	if need_close: return s
+
+	return "".join(lNew)
+
 
 # ########################################################################## #
 
@@ -903,7 +944,7 @@ def prnOptGroupForm(
 
 	# Get the group name
 	sGrpName = sGroup
-	if 'label' in dGroup: sGrpName = dGroup['label']
+	if 'label' in dGroup: sGrpName = _fmtGranny(dGroup['label'])
 	
 	# Any option name can be used, but some are recognized as having particular 
 	# meanings, especially in the context of a variable.  If this is a variable
@@ -1325,14 +1366,24 @@ def prnHttpSource(U, fLog, dConf, dSrc, fOut):
 			dProto = dSrc['protocol']
 			dIface = dSrc['interface']
 
-	if 'authentication' in dProto:
-		if _isTrue(dProto['authentication'], 'required'):
+	if 'authorization' in dProto:
+		if _isTrue(dProto['authorization'], 'required'):
 			sout(fOut, '<p><i><span class="error">Restricted data source</span>.</i>')
-			if 'REALM' in dProto['authentication']:
-				sout(fOut, 'You will be asked to authentication to the realm "' +\
-					'<b>%s</b>" on submit.</p>'%dProto['authentication']['realm']) 
+			sWill = "will"
+			sExtra = ""
+			if _hasElement(dProto, ('authorization','methods')):
+				if dProto['authorization']['methods'].count('query'):
+					sExtra = "<br>&nbsp; &nbsp; Some query ranges do not require authorization."
+					sWill = "may"
+			if _hasElement(dProto, ('authorization', 'realm')):
+				sout(fOut, '<br>&nbsp; &nbsp; You %s be asked to authentication to the realm'%sWill +\
+					' <i>"%s"</i> on submit.'%dProto['authorization']['realm']) 
 			else:
-				sout(fOut, "You will be asked to authentication on submit.</p>")
+				sout(fOut, "<br>&nbsp; &nbsp; You %s be asked to authentication on submit."%sWill)
+			if len(sExtra) > 0:
+				sout(fOut, sExtra)
+		sout(fOut, "<br>")
+
 
 	# Print the examples
 	if 'examples' in dIface:
