@@ -222,6 +222,9 @@ def handleReq(modUtil, sReqType, dConf, fLog, form, sPathInfo):
 	global U
 	U = modUtil
 
+	#U.webio.pout("Content-Type: text/plain\r\n")
+	#U.webio.pout("Status: 200 OK\r\n\r\n")
+
 	fLog.write("\ndas flex data request handler")
 
 	if 'DATASRC_ROOT' not in dConf:
@@ -269,6 +272,7 @@ def handleReq(modUtil, sReqType, dConf, fLog, form, sPathInfo):
 
 	# Using translated parameters, see if we pass authentication checks
 	if 'authorization' in dSrc:
+		fLog.write("   AUTH: Authorization required.")
 		(nRet, sRealm) = U.auth.authorize(dConf, fLog, dSrc, dParams)
 
 		if nRet == U.auth.AUTH_SRV_ERR:
@@ -276,9 +280,14 @@ def handleReq(modUtil, sReqType, dConf, fLog, form, sPathInfo):
 			return 8
 
 		if nRet == U.auth.AUTH_FAIL:
-			sys.stdout.write("Status: 401 Authorization Required")
-			sys.stdout.write('WWW-Authenticate: Basic realm="%s"\r\n'%sRealm)
-			return 0
+			if sRealm:
+				U.webio.pout("Status: 401 Authorization Required\r\n")
+				U.webio.pout('WWW-Authenticate: Basic realm="%s"\r\n\r\n'%sRealm)
+				return 0
+			else:
+				fLog.write("Authentication failed and no security realm provided")
+				U.webio.pout("Status: 403 Forbidden\r\n\r\n")
+				return 0
 
 		# Only other status out of auth is AUTH_SUCCESS, which means we proceed
 

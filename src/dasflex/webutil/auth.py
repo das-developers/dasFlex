@@ -18,6 +18,17 @@ AUTH_SRV_ERR = 2
 # ########################################################################### #
 # Helpers #
 
+def _hasElement(d, l):
+	"""Return true if a nested set of dictionaries has the given key
+	"""
+	for i in range(len(l)):
+		if l[i] not in d:
+			return False
+
+		d = d[l[i]]
+
+	return True
+
 def _getElement(fLog, d, l):
 	if not _hasElement(d, l):
 		fLog.write("   ERROR: Could not locate dictionary element: %s"%str(l))
@@ -343,7 +354,7 @@ def authByAddress(fLog, sAddr, ranges):
 # Authorization by Query coordinate range                                     #
 # ########################################################################### #
 
-def _ageToTime(fLog, sResource, sAge):
+def _ageToTime(fLog, sAge):
 	sAge = sAge.strip()
 	
 	dtLockPt = das2.DasTime.now()
@@ -386,8 +397,7 @@ def _ageToTime(fLog, sResource, sAge):
 		bAdjusted = False
 		
 	if not bAdjusted:
-		fLog.write("   Authorization: ERROR! In AGE value '%s' for %s"%(
-		           sAge, sResource))
+		fLog.write("   ERROR: Can't parse authetication AGE value '%s'"%sAge)
 		return None
 	else:
 		return dtLockPt
@@ -400,12 +410,15 @@ def _getTime(fLog, sTime, sUnits):
 		If the returned dasTime is None, but bError is false this is simply
 		not a time, but there was no error parsing what looked to be a time
 	"""
+	
 	if sTime.lower() == 'age':
 		dt = _ageToTime(fLog, sUnits)
 		if dt == None:
 			return (None, True)  # Was a time, but couldn't parse
+		else:
+			return (dt, False)
 	
-	if sUnits == '': # No units, just see if it's parseable as a time string 
+	elif sUnits == '': # No units, just see if it's parseable as a time string 
 		try:
 			dt = das2.DasTime(sTime)
 			return (dt, False)
@@ -463,8 +476,8 @@ def _parseValue(fLog, sValue):
 
 def _compare(fLog, userval, sCmp, testval):
 
-	if userval.units != testval.units:
-		testval.value = das2.convert(testval.value, testval.units, userval.units)
+	if userval.unit != testval.unit:
+		testval.value = das2.convert(testval.value, testval.unit, userval.unit)
 
 	sCmp = sCmp.lower()
 	if sCmp == "le":
@@ -478,7 +491,7 @@ def _compare(fLog, userval, sCmp, testval):
 	elif sCmp == 'eq':
 		if userval.value == testval.value: return AUTH_SUCCESS
 	else:
-		fLog.write("   Authorization: Unknown comparison operator %s", sCmp)
+		fLog.write("   ERROR: Unknown auth query comparison operator %s", sCmp)
 		return AUTH_SRV_ERR
 
 	return AUTH_FAIL
@@ -533,12 +546,12 @@ def authByCoords(dConf, fLog, lExpect, dParams):
 	for dExpect in lExpect:
 		
 		if 'range' in dExpect:
-			fLog.write("   Authorization: Range checks not yet impelmented")
+			fLog.write("   ERROR: Authorization range checks not yet impelmented")
 			return AUTH_SRV_ERR
 
 		for sElm in ('value', 'compare', 'to'):
 			if sElm not in dExpect:
-				fLog.write("   Authorization: '%s' element missing query check"%sElm)
+				fLog.write("   ERROR: Property authorization.allow.params.%s missing in interal.json"%sElm)
 				return AUTH_SRV_ERR
 
 		sValue = command.substitute(fLog, dExpect['value'], dParams)
@@ -548,7 +561,7 @@ def authByCoords(dConf, fLog, lExpect, dParams):
 			return AUTH_SRV_ERR
 
 		sCmp = dExpect['compare']
-		nRet = _compare(val, sCmp, test)
+		nRet = _compare(fLog, val, sCmp, test)
 
 		if nRet == AUTH_SRV_ERR:
 			return AUTH_SRV_ERR
@@ -557,13 +570,14 @@ def authByCoords(dConf, fLog, lExpect, dParams):
 			nSuccess += 1
 		else:
 			if _isElTrue(dExpect, ('required',)):
-				fLog.write("   Authorization: Failed required check %s %s %s"%(
+				fLog.write("   ERROR: Failed required authorization check %s %s %s"%(
 					sValue, sCmp, dExpect['to']
 				))
 				return AUTH_FAIL
 
 	# Did I have at least one success and failures of required items?
 	if nSuccess > 0:
+		fLog.write("   INFO: Authorization granted based on query range.")
 		return AUTH_SUCCESS
 	else:
 		return AUTH_FAIL
@@ -596,18 +610,18 @@ def _authCrypt(dConf, fLog, sUser, sPasswd):
 	"""Nitty gritty of user authentication"""
 	
 	if 'PASSWD_FILE' not in dConf: 
-		fLog.write("   Authorization: ERROR! Configuration entry 'PASSWD_FILE' "+\
-		           "missing. Can't support 'passfile' authorization method")
+		fLog.write("   ERROR: Configuration entry 'PASSWD_FILE' "+\
+		           "missing in dasflex.conf. Can't support 'passfile' authorization method")
 		return AUTH_SRV_ERR
 		
 	if not os.path.isfile(dConf['PASSWD_FILE']):
-		fLog.write("   Authorization: ERROR! Password file '%s' is missing."%dConf['PASSWD_FILE'])
+		fLog.write("   ERROR: Password file '%s' is missing."%dConf['PASSWD_FILE'])
 		return AUTH_SRV_ERR
 	
 	try:
 		fIn = open(dConf['PASSWD_FILE'], 'r')
 	except IOError:
-		fLog.write("   Authorization: ERROR! Can't open password file, '%s'"%dConf['PASSWD_FILE'])
+		fLog.write("   ERROR: Can't open password file, '%s'"%dConf['PASSWD_FILE'])
 		return AUTH_SRV_ERR
 	
 	for sLine in fIn:
@@ -616,7 +630,7 @@ def _authCrypt(dConf, fLog, sUser, sPasswd):
 			continue
 		lLine = sLine.split(':')
 		if len(lLine) < 2:
-			fLog.write("   Authorization: ERROR! Improperly formatted password file, %s"%dConf['PASSWD_FILE'])
+			fLog.write("   ERROR: Improperly formatted password file, %s"%dConf['PASSWD_FILE'])
 
 		if len(lLine) > 1 and lLine[0] == sUser:
 			sCrypt = ':'.join(lLine[1:])         # Passwd string may have hand a ':'
@@ -626,10 +640,10 @@ def _authCrypt(dConf, fLog, sUser, sPasswd):
 			#fLog.write("Test Crypt: %s"%sTest)
 			
 			if sTest == sCrypt:
-				fLog.write("   Authorization: User %s authenticated"%sUser)
+				fLog.write("   INFO: User %s authenticated"%sUser)
 				return AUTH_SUCCESS
 				
-	fLog.write("   Authorization: Cipher match failure for user %s"%sUser)
+	fLog.write("   ERROR: Cipher match failure for user %s"%sUser)
 	return AUTH_FAIL
 
 def _getUserGroups(dConf, fLog, sUser):
@@ -645,21 +659,21 @@ def _getUserGroups(dConf, fLog, sUser):
 	Note: It is possible that the user isn't in any groups, so lGroups may
 	      be a zero length list
 	"""
-	if 'USER_GROUP' not in dConf: 
-		fLog.write("   Authorization: ERROR! Configuration entry 'USER_GROUP'"+\
-		           " missing, can't authenticate Das2 users")
+	if 'GROUP_FILE' not in dConf: 
+		fLog.write("   ERROR: Configuration entry 'GROUP_FILE'"+\
+		           " missing, can't authenticate local user accounts")
 		return (AUTH_SRV_ERR, None)
 	
-	if not os.path.isfile(dConf['USER_GROUP']):
-		fLog.write("   Authorization: ERROR! Group file '%s' is missing."%dConf['USER_GROUP'])
+	if not os.path.isfile(dConf['GROUP_FILE']):
+		fLog.write("   ERROR: Authetication group file '%s' is missing."%dConf['GROUP_FILE'])
 		return (AUTH_SRV_ERR, None)
 
 	lGroups = []
 
 	try:
-		fIn = open(dConf['USER_GROUP'], 'r')
+		fIn = open(dConf['GROUP_FILE'], 'r')
 	except IOError:
-		fLog.write("   Authorization: ERROR! Can't open group file, '%s'"%dConf['USER_GROUP'])
+		fLog.write("   ERROR: Can't open authentication group file, '%s'"%dConf['GROUP_FILE'])
 		return (AUTH_SRV_ERR, None)
 		
 	for sLine in fIn:
@@ -668,11 +682,11 @@ def _getUserGroups(dConf, fLog, sUser):
 			continue
 		lLine = sLine.split(':')
 		if len(lLine) != 4:
-			fLog.write("   Authorization: ERROR! Expected 4 sections in each line of %s"%dConf['USER_GROUP'])
+			fLog.write("   ERROR: Expected 4 sections in each line of %s"%dConf['GROUP_FILE'])
 			return (AUTH_SRV_ERR, None)
 					
 		if len(lLine[0]) == 0:
-			fLog.write("   Authorization: ERROR! Bad group name in %s"%dConf['USER_GROUP'])
+			fLog.write("   ERROR: Bad authentication group name in %s"%dConf['GROUP_FILE'])
 			return (AUTH_SRV_ERR, None)
 		
 		lUsers = lLine[3].split(',')
@@ -690,42 +704,51 @@ def authByPassFile(dConf, fLog, dExpect):
 		dConf - The server configuration
 		dExpect - A dictionary containing a realm, and one of the
 		  the lists: 'groups' or 'users'
+
+	Returns:  (nStatus, sRealm) if a status of AUTH_FAIL is returned
+		then a realm string is also returned so the end user can attempt
+		to provide a password suitable for the security realm
 	"""
 
 	# Check for server errors first
 	if ("groups" not in dExpect) and ('users' not in dExpect):
-		fLow.write('  Authorization: ERROR! No "users" or "groups" listed for data source')
-		return AUTH_SRV_ERR
+		fLog.write('   ERROR: No authentication "users" or "groups" provided in internal.json')
+		return (AUTH_SRV_ERR, None)
+
+	if "realm" not in dExpect:
+		fLog.write('   ERROR: Authentication "realm" not provided in internal.json')
+		return (AUTH_SRV_ERR, None)
 
 	(sUser, sPasswd, bSrvErr) = _getUserPasswd(fLog)
 	if bSrvErr:
-		return AUTH_SRV_ERR
+		return (AUTH_SRV_ERR, None)
 	if (sUser == None) or (sPasswd == None):
-		return AUTH_FAIL
+		return (AUTH_FAIL, dExpect["realm"])
 
 	# It's an older code, but does it check out?
 	# TODO: I know this is the rudimentary lowest-common denominator method, 
 	#       but see if browsers will support auth stronger then crypt
 	nRet = _authCrypt(dConf, fLog, sUser, sPasswd)
 	if nRet != AUTH_SUCCESS:
-		return nRet
+		return (nRet, dExpect["realm"])
 
 	if 'groups' in dExpect:
 		(nRet, lUserGroups) = _getUserGroups(dConf, fLog, sUser)
 		if nRet == AUTH_SRV_ERR:
-			return nRet
+			return (nRet, None)
 
 		for sGroup in dExpect['groups']:
 			if sGroup in lUserGroups:
-				fLog.write("   Authorization: %s is a member of %s"%(sUser, sGroup))
-				return AUTH_SUCCESS
+				fLog.write("   INFO: Authenticated %s as a member of %s"%(sUser, sGroup))
+				return (AUTH_SUCCESS, None)
 
 	if 'users' in dExpect:
 		if sUser in dExpect['users']:
-			return AUTH_SUCCESS
+			fLog.write("   INFO: Authenticated user %s granted access"%sUser)
+			return (AUTH_SUCCESS, None)
 
-	fLog.write("  Authorization:  Password file authentication failed for '%s'"%sUser)
-	return AUTH_FAIL
+	fLog.write("  ERROR: Password file authentication failed for '%s'"%sUser)
+	return (AUTH_FAIL, dExpect["realm"])
 
 
 # ########################################################################### #
@@ -733,22 +756,27 @@ def authByPassFile(dConf, fLog, dExpect):
 
 def authorize(dConf, fLog, dInternal, dParams):
 	"""
-	Handle authorization for a das resource
+	Handle authorization for a das resource.
+
+	Params:
+		dConf - The configuration dictionary, The keywords PASSWD_FILE and
+		        possibly GROUP_FILE are consulted from this.  If those strings
+		        aren't present in the configuration file authorization will
+		        likely fail.
+		  	
+		fLog - The logger object
 	
-	dConf - The configuration dictionary, The keywords PASSWD_FILE and
-	        possibly GROUP_FILE are consulted from this.  If those strings
-	        aren't present in the configuration file authorization will
-	        likely fail.
-			  	
-	fLog - The logger object
+		dInternal - The internal.json for this data source
 	
-	dInternal - The internal.json for this data source
+		dParams - The query parameters for this request
+
+	Returns: (int, str) -> (nRet, sRealm)
+	   It is presumed that this function will be called once, with an error
+	   return and that top level handlers should use the returned realm to
+	   craft and HTTP 401 message, then try again
 	
-	dParams - The query parameters for this request
-	
-	In addition the os.environ dictionary is consulted to get the value
-	of the 'HTTP_AUTHORIZATION' variable.  Note, the name of this variable
-	can be changed in the config if desired.
+	The os.environ dictionary is consulted to get the value of the 
+	'HTTP_AUTHORIZATION' variable, as well as the upstream IP address.
 
 	An example of an authorization area within a flex.json file follows:
    {
@@ -797,25 +825,27 @@ def authorize(dConf, fLog, dInternal, dParams):
 	# auto-allow access in dasflex.conf:
 	if 'ALLOW_TEST_FROM' in dConf and 'REMOTE_ADDR' in os.environ:
 		if authByAddress(fLog, os.environ['REMOTE_ADDR'], dConf['ALLOW_TEST_FROM']):
-			fLog.write("   Authorization: Host %s allowed access"%os.environ['REMOTE_ADDR'])
-			return AUTH_SUCCESS
+			fLog.write("   INFO: Host %s authorized for access"%os.environ['REMOTE_ADDR'])
+			return (AUTH_SUCCESS, None)
 	
-	dAllow = _getElement(dInternal, ('authorization','allow'))
+	dAllow = _getElement(fLog, dInternal, ('authorization','allow'))
 	if not dAllow or (len(dAllow) == 0):
-		return AUTH_SRV_ERR
+		return (AUTH_SRV_ERR, None)
 
 	if 'params' in dAllow:
 		nRet = authByCoords(dConf, fLog, dAllow['params'], dParams)
 		if nRet in (AUTH_SUCCESS, AUTH_SRV_ERR): 
-			return nRet
+			return (nRet, None)
 
 	if 'passfile' in dAllow:
-		nRet = authByPassFile(dConf, fLog, dAllow['passfile'])
+		(nRet, sRealm) = authByPassFile(dConf, fLog, dAllow['passfile'])
 		if nRet in (AUTH_SUCCESS, AUTH_SRV_ERR):
-			return nRet
+			return (nRet, None)
+		else:
+			return (nRet, sRealm)
 
-	fLog.write("   Authorizaiton: Access denied")
-	return AUTH_FAIL  # Nothing worked
+	fLog.write("   ERROR: Authorization failed, access denied")
+	return (AUTH_FAIL, None)  # Nothing worked, and no realm
 
 # ########################################################################## #
 # to run these tests from the build area issue:
