@@ -143,7 +143,7 @@ def main():
 	)
 
 	psr.add_argument(
-		'-n','--no-examples', default=True, action="store_false", dest="bNoExamples",
+		'-n','--no-examples', default=True, action="store_false", dest="bExamples",
 		help="Do not install example data sources in the catalog.  Note: You can "+\
 		" remove examples simply by deleting them and re-running dasflex_cupdate"
 	)
@@ -235,9 +235,11 @@ def main():
 	dDirs = {
 		'etc'           : dRep['ETC_DIR'], 
 		'static'        : dRep['STATIC_DIR'],
-		'Examples'      : "%s/dsdf/Examples"%sRoot, 
 		'sdef.commands' : "%s/commands"%sRoot
 	}
+
+	if opts.bExamples:
+		dDirs['Examples'] = "%s/dsdf/Examples"%sRoot
 
 	for sDir in dDirs.keys():
 		for path in resfiles('dasflex.root.%s'%sDir).iterdir():

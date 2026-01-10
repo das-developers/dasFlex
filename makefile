@@ -17,10 +17,10 @@
 VERSION:=0.5rc1
 
 ifeq ($(PY_BIN),)
-PY_BIN=$(which python)
+PY_BIN=$(shell which python)
 
 ifeq ($(PY_BIN),)
-PY_BIN=$(which python3)
+PY_BIN=$(shell which python3)
 endif
 
 ifeq ($(PY_BIN),)

@@ -34,42 +34,88 @@ writen in **any** language, and released under almost **any** license.
 Compilation and installation of a dasFlex server has only been tested in Linux
 environments and depends on the following tools:
 
-1. Python >= 3.7
+1. das2C >= 3.0
+2. das2py >= 3.0
+2. Python >= 3.7
 2. Apache2, any remotely recent version
-3. [Redis](https://redis.io), known to work with version 3.2 or higher
 
 
-## Software Installation
-
-> Currently not all packages are in PyPI, and the system dependencies are
-> not distributed as .deb or .rpm files.  Build python packages from source
-> using the instructions in [ManualBuild.md](docs/ManualBuild.md)
+## Automated Installation
 
 For Conda Packages (uncommon) issue:
 ```bash
 conda install -c dasdevelopers dasflex
 ```
-For PIP Packages issue:
 
-It assumed that you're running a python binary from your virtual environment.
-Theres no need to "enter" the environment, just provide a full path to the
-version of python you wish to use for the server.
-```bash
-/path/to/your/python -m pip install dasFlex
-```
+## Installation from Source
+A summary is provided below. Additional instructions can be found in each individual package.
+
+1. Get system software packages.
+
+  **Rocky Linux Compatable**
+  ```bash
+  dnf install git gcc expat-devel fftw-devel openssl-devel python3-devel
+  ```
+  **Debian Linux Compatable**
+  ```bash
+  apt install gcc git libexpat-dev libfftw3-dev libssl-dev python3-dev
+  ```
+
+2. Get all sources in parallel directories
+   ```bash
+   mkdir -p git && cd git
+   git clone https://github.com/das-developers/das2C.git
+   git clone https://github.com/das-developers/das2py.git
+   git clone https://github.com/das-developers/dasFlex.git
+   ```
+
+3. Build and test sources
+   ```bash
+   cd git/das2C
+   make CDF=yes SPICE=yes
+   make CDF=yes SPICE=yes test
+   cd ../
+    
+   cd ../das2py
+   make DAS2C=${PWD}/../das2C          # (optionally set PY_BIN first)
+   make DAS2C=${PWD}/../das2C test
+   make DAS2C=${PWD}/../das2C examples # (optional, long test)
+   cd ../
+
+   cd ../dasFlex
+   make  # Automatically finds das2py in adjacent ../das2py
+   make test
+   ```
+
+4. Install into self contained area
+   ```bash
+   export PREFIX=/var/www/dasflex  # Adjust to taste
+   sudo mkdir -p $PREFIX
+
+   cd git
+   cd das2C
+   make PREFIX=$PREFIX CDF=yes SPICE=yes install
+   cd ../
+
+   cd ../das2py
+   python3 -m venv $PREFIX/venv
+   $PREFIX/venv/bin/python -m pip install ./dist/*.whl
+   cd ../
+
+   cd ../dasFlex
+   $PREFIX/venv/bin/python -m pip install ./dist/*.whl
+   cd ../
+   ```
 
 ## Server Root Setup
 
-All configuration data for the dasFlex web-service itself consists of plain
-files.  Redis is only used for work-lists.  Furthermore these files are not
-cached in memory, but are read anew as each is needed.
-
-To setup a server root area run `dasflex_mkroot`.  If you're using a python 
-virtual environment you'll find the script installed under VENV_ROOT/bin.
-
+To setup a server root area run `dasflex_mkroot`.
 ```bash
-dasflex_mkroot -h                              # see the help text first
-dasflex_mkroot /var/www/dasflex  "Test_Server" # For example, adjust to taste
+$PREFIX/venv/bin/dasflex_mkroot -h                  # View help text first
+
+$PREFIX/venv/bin/dasflex_mkroot $PREFIX "My_Srv"    # Adjust ID as desired
+
+$PREFIX/venv/bin/dasflex_mkroot -n $PREFIX "My_Srv" # (Alt) use -n to skip examples
 ```
 
 The only file that the main CGI programs need to know about is `dasflex.conf`. 
@@ -80,6 +126,13 @@ the necessary server components.
 
 After the server root has been created, customize `dasflex.conf`.  Starting with
 the SERVER_NAME, SERVER_ID settings.
+
+You'll need a logging area that's writable by Apache.
+```bash
+sudo mkdir $PREFIX/log          # Also set 'LOG_PATH' in dasflex.conf
+sudo chown apache $PREFIX/log   # Rocky
+sudo chown www-data $PREFIX/log # Debian
+```
 
 ## Configure Apache - CGI
 
@@ -116,25 +169,22 @@ Alias /log /var/www/dasflex/venv/bin/dasflex_cgilog
   Require ip <LOG_IP_1> <LOG_IP_2>
 </Location>
 ```
-For security the log end-point shouldn't be open to the world, hence the `<LOG_IP_1>`
-`<LOG_IP_2>` replacement text above.
 
 By default, authorization headers are not made available to CGI scripts.
 The re-write rule above allows the `Authorization` header to be passed down
 to the `dasflex_cgimain` script.  This is needed to allow your server to
 support password protected data sources.
 
-## Try it out
+For security the log end-point shouldn't be open to the world, hence the `<LOG_IP_1>`
+`<LOG_IP_2>` replacement text above.
 
-Point your web browser at the path in the `Alias` statements above and see 
-what you get.  It should be a simple text message instructing you to
 
-The main server script needs to be able to find the main log reader
-script and vice versa.  If you use something other than the default
-values above update the following config entries in your `dasflex.conf`.
+The main server script needs to know it's external URLs for generating 
+links. If pick end-point URLs other than the default `Alias` directives 
+above then update the following config entries in your `dasflex.conf`.
 ```ini
-VIEW_LOG_URL = "log"
-MAIN_SRV_URL = "server"
+VIEW_LOG_URL = "log"     # Must be compatible with Alias directives,
+MAIN_SRV_URL = "server"  # Full URLs are acceptable
 ```
 
 Set the permissions of the log directory so that Apache can write logging
@@ -150,13 +200,16 @@ Finally, trigger a re-read of the Apache's configuration data:
 $ sudo systemctl restart httpd.service
 $ sudo systemctl status httpd.service
 ```
+
 ## Test the server
 
-Test the server by pointing your web browser at:
+Point your web browser at the path in the `Alias` statements above and see 
+what you get.  It should be a simple text message instructing you to setup
+you're dasflex.conf file if you haven't done so.  By default these are:
 
 ```
-https://localhost/das/server
-https://localhost/das/log
+http://localhost/das/server
+http://localhost/das/log
 ```
 If this works, try browsing your new server with Autoplot.  To do so, copy the
 following URI into the Autoplot address bar and hit the green "Go" button:
