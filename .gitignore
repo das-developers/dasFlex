@@ -7,3 +7,6 @@ dasflex.egg-info
 src/dasflex/__pycache__
 src/dasflex/*/__pycache__
 dist_venv
+build_venv
+test_venv
+

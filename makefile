@@ -107,26 +107,26 @@ SRC_FILES:=$(patsubst %,src/dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
 # fad takes over)
 build: dist/$(WHEEL_FILE)
 
-dist/$(WHEEL_FILE):$(SRC_FILES)
-	$(PY_BIN) -m build
+dist/$(WHEEL_FILE):$(SRC_FILES) build_venv/bin/python
+	build_venv/bin/python -m build
 
-
-./dist_venv/bin/python:
-	# Creating temporary environment for testing
-	$(PY_BIN) -m $(VENV_MOD) dist_venv
+build_venv/bin/python:
+	$(PY_BIN) -m $(VENV_MOD) build_venv
+	build_venv/bin/python -m pip install build
 
 # Run unit tests.  Only auth.py has unittests so far
-test: ./dist_venv/bin/python
-	./dist_venv/bin/python -m pip install $(PIP_ARGS) $(DAS_WHEEL_PATH)
-	./dist_venv/bin/python -m pip install $(PIP_ARGS) dist/$(WHEEL_FILE)
-	./dist_venv/bin/python -m dasflex.webutil.auth
+test:dist/$(WHEEL_FILE)
+	$(PY_BIN) -m $(VENV_MOD) test_venv
+	./test_venv/bin/python -m pip install $(PIP_ARGS) $(DAS_WHEEL_PATH)
+	./test_venv/bin/python -m pip install $(PIP_ARGS) dist/$(WHEEL_FILE)
+	./test_venv/bin/python -m dasflex.webutil.auth
 
 install:
-	@python -m pip uninstall -y ./dist/$(WHEEL_FILE)
-	python -m pip install --pre ./dist/$(WHEEL_FILE)
+	@$(PY_BIN) -m pip uninstall -y ./dist/$(WHEEL_FILE)
+	$(PY_BIN) -m pip install --pre ./dist/$(WHEEL_FILE)
 
 distclean:
-	-rm -r dist dist_venv
+	-rm -r dist test_venv build_venv
 
 clean:
-	-rm -r dist dist_venv
+	-rm -r dist test_venv
