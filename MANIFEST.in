@@ -1,6 +1,9 @@
 include src/dasflex/root/etc/dasflex.conf.example.in
 include src/dasflex/root/etc/mime.json.example
 include src/dasflex/root/etc/das2peers.ini.example.in
+include src/dasflex/root/etc/ReadMe-Passwords.txt.in
+include src/dasflex/root/etc/passwd.example
+include src/dasflex/root/etc/group.example
 include src/dasflex/root/Examples/_dirinfo_.dsdf
 include src/dasflex/root/Examples/UNLICENSE
 include src/dasflex/root/Examples/Auth/sine.py
