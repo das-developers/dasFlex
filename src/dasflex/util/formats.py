@@ -7,7 +7,7 @@ import json
 # advertise thier keys in an API file.
 g_tKeyConvention = (
 	"read.time.min", "read.time.max", "bin.time.max", "read.time.inter",
-	"read.opts"
+	"read.opts", "format.type", "format.version", "format.nocomp"
 )
 
 g_sDas1File = 'das1.pro'
@@ -446,9 +446,11 @@ def addFormatHttpParams(dConf, dParams, lRdrOut, bWebSockConn=False):
 def getCommands(dConf, lRdrOut):
 	"""Add command templates for formatting output."""
 
-	(sKeyBeg, sKeyEnd, sKeyRes, sKeyIntr, sKeyParams) = g_tKeyConvention
+	(
+		sKeyBeg, sKeyEnd, sKeyRes, sKeyIntr, sKeyParams, sKeyFmt, sKeyVer, sKeyComp
+	) = g_tKeyConvention
 
-	lFormatters = []
+	dFormatters = {}
 
 	sRdr = lRdrOut[0]
 	sVer = lRdrOut[1]
@@ -456,16 +458,15 @@ def getCommands(dConf, lRdrOut):
 
 	# Assume that das1 -to-> das2 converters have to happen early
 
-
 	if sRdr == 'qstream' and ('QDS_TO_UTF8' in dConf):
-		lFormatters.append({
+		dFormatters["qds_text"] = {
 			'label':'.qds to .qdt converter',
-			'triggers':[{'key':'format.serial','value':'text'}],
+			'activation':[{'key':'format.serial','value':'text'}],
 			'template': dConf['QDS_TO_UTF8'],
 			'input':{'type':'qstream'},
 			'output':{'type':'qstream','variant':'text'},
 			'order':5
-		})
+		}
 		return   # Don't know of anything else I can do with QStream
 
 	if sRdr == 'das':
@@ -475,7 +476,7 @@ def getCommands(dConf, lRdrOut):
 			sCmd = 'das2_from_das1'
 			if 'DAS1_TO_DAS2' in dConf: sCmd = dConf['DAS1_TO_DAS2']
 
-			lFormatters.append({
+			dFormatters['das1_to_das2'] = {
 				'label':sCmd,
 				'title':'Das v1 to v2 converter',
 				'template':[
@@ -483,40 +484,39 @@ def getCommands(dConf, lRdrOut):
 						sCmd, g_sDas1File, sKeyBeg, sKeyEnd, sKeyIntr
 					)
 				],
-				'triggers':[{'key':'format.version','value':"2", 'compare':'ge'}],
+				'activation':[{'key':'format.version','value':"2", 'compare':'ge'}],
 				'input':{'type':'das','version':'1'},
 				'output':{'type':'das','version':'2'},
 				'order': 2
-			})
-			
+			}
 
 			# Now act as if my version was v2 :)
 			sVer = '2'
 
 		elif sVer == '1.1': # Tagged stream (B0, etc.)
 			sCmd = 'das2_from_tagged_das1'
-			lFormatters.append({
+			dFormatters['das1_to_das2'] = {
 				'label':sCmd,
 				'title':'das v1.1 (tagged) to v2 converter',
 				'template':'%s -s -tBeg #%s'%(sCmd, sKeyBeg),
-				'triggers':[{'key':'format.version','value':"2", 'compare':'ge'}],
+				'activation':[{'key':'format.version','value':"2", 'compare':'ge'}],
 				'input':{'type':'das','version':'1.1'},
 				'output':{'type':'das','version':'2'},
 				'order': 2
-			})
+			}
 			
 			sVer = '2'
 
 		if sVer == '2':
 			sCmd = 'das2_ascii'
 			if 'D2S_TO_UTF8' in dConf: sCmd = dConf['D2S_TO_UTF8']
-			lFormatters.append({
+			dFormatters['das_text'] = {
 				'label':sCmd,
 				'title':'das 2 binary to text',
 				'template':'%s -c #[%s#-s @#] #[%s#-r @#]'%(
 					sCmd, g_sParamSecFrac, g_sParamSigDigit
 				),
-				'triggers':[
+				'activation':[
 					{'key':'format.serial', 'value':'text'},
 					{'key':'format.type',   'value':'das'},
 					{'key':'format.version','value':'2'}
@@ -524,37 +524,48 @@ def getCommands(dConf, lRdrOut):
 				'input':{'type':'das','version':'2'},
 				'output':{'type':'das','version':'2','variant':'text'},
 				'order': 5
-			})
+			}
 			
-			sCmd = 'das2_csv'
+			sCmd = 'das3_csv'
 			if 'D2S_CSV_CONVERTER' in dConf: sCmd = dConf['D2S_CSV_CONVERTER']
-			lFormatters.append({
+			dFormatters['das_csv'] = {
 				'label':sCmd,
-				'title':'das 2 to CSV converter',
+				'title':'das to CSV converter',
 				'template':'%s #[%s#-s @#] #[%s#-r @#] #[%s#-d @#]'%(
 					sCmd, g_sParamSecFrac, g_sParamSigDigit, g_sParamDelim
 				),
-				'triggers':[{'key':'format.type','value':'csv'}],
-				'input':{'type':'das','version':'2'},
+				'activation':[{'key':'format.type','value':'csv'}],
+				'input':{'type':'das'}, # Can do both das2 and das3
 				'output':{'type':'csv'}, 
 				'order': 5    # Same as the das2_ascii converter on purpose
-			})
+			}
+
+			sCmd = "das3_cdf"
+			if 'D2S_CDF_CONVERTER' in dConf: sCmd = dConf['D2S_CDF_CONVERTER']
+			dFormatters['das_cdf'] = {
+				'label':sCmd,
+				'title':'das to CDF converter',
+				'template':'%s #[%s#-u#]'%(sCmd, sKeyComp),
+				'activation':[{'key':'format.type','value':'cdf'}],
+				'input':{'type':'das'},
+				'order':5
+			}
 			
 			if 'DAS_TO_PNG' in dConf:
 				sCmd = dConf['DAS_TO_PNG']
-				lFormatters.append({
+				dFormatters['das_png'] = {
 					'label':sCmd,
 					'title':'das v2 plot image generator',
 					'template':'%s #[%s#-w @#] #[%s#-h @#]'%(
 						sCmd, 'format.width', 'format.height'
 					),
-					'triggers':[{'key':'format.type','value':'png'}],
+					'activation':[{'key':'format.type','value':'png'}],
 					'input':{'type':'das','version':'2'},
 					'output':{'type':'png'},
 					'streaming':False,
 					'order': 5   # Same as text converters on purpose
-				})
+				}
 
-	return lFormatters
+	return dFormatters
 				
 			

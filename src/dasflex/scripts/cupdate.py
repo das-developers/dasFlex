@@ -79,8 +79,7 @@ def getConf(sConfPath):
 	return dConf
 
 # ########################################################################## #
-# Update sys.path, boiler plate code that has to be re-included in each script
-# since config file can change module path
+# Update sys.path since config file can change module path
 
 def setModulePath(dConf):
 	if 'MODULE_PATH' not in dConf:
@@ -181,7 +180,7 @@ SYNOPSIS:
 DESCRIPTION:
    dasflex_cupdate walks the server catalog area in a bottom up fashion 
    propogating changes to source definitions into higher level catalog 
-   nodes.  Specifically this program updates catalog notes of type:
+   nodes.  Specifically this program updates catalog nodes of type:
 
       Catalog, SourceSet
 
@@ -204,9 +203,8 @@ FILES:
    files read are only found via the top-level configuration filel.
 
 SEE ALSO:
-   The companion program dasflex_sdef handles import of sources from DSDF or
-   JSON templates and also updates catalog lists as well.
-
+   The companion program dasflex_dsdf handles defining catalog nodes using 
+   das2-pyserver DSDF files.
 """%dRep)
 
 # ########################################################################## #

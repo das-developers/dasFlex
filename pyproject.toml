@@ -1,6 +1,6 @@
 [project]
 name = "dasflex"
-version = "0.5rc1"
+version = "0.5rc2"
 dependencies = [ "das2py>=3.0rc4"]
 description = "A multi-format data stream server implementing das3 and other APIs"
 readme = "README.md"
@@ -16,13 +16,14 @@ Homepage = "https://github.com/das-developers/dasFlex"
 Repository = "https://github.com/das-developers/dasFlex"
 
 [project.scripts]
-dasflex_cgimain    = "dasflex.scripts.cgimain:main"
-dasflex_cgilog     = "dasflex.scripts.cgilog:main"
-dasflex_websocd    = "dasflex.scripts.websocd:main"
-dasflex_cupdate    = "dasflex.scripts.cupdate:main"
-dasflex_das2test   = "dasflex.scripts.das2test:main"
-dasflex_mkroot     = "dasflex.scripts.mkroot:main"
-dasflex_todo       = "dasflex.scripts.todo:main"
+dasflex_cgimain  = "dasflex.scripts.cgimain:main"
+dasflex_cgilog   = "dasflex.scripts.cgilog:main"
+dasflex_websocd  = "dasflex.scripts.websocd:main"
+dasflex_cupdate  = "dasflex.scripts.cupdate:main"
+dasflex_das2test = "dasflex.scripts.das2test:main"
+dasflex_mkroot   = "dasflex.scripts.mkroot:main"
+dasflex_todo     = "dasflex.scripts.todo:main"
+dasflex_add      = "dasflex.scripts.add:main"
 
 [build-system]
 requires = [ "setuptools", "wheel" ]

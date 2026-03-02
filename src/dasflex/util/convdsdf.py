@@ -19,26 +19,6 @@ g_d2s_mime = "application/vnd.das2.das2stream"
 g_d2x_mime = "application/vnd.das2.das2doc+xml" #; charset=utf-8 (*.d2x)
 g_qs_mime  = "application/vnd.das2.qstream"
 
-g_dStdKeys = {
-	'das2':{
-		"read.time.min":"start_time",
-		"read.time.max":"stop_time",
-		'read.time.inter':'interval',
-		'bin.time.max':'resolution',
-		'read.opts':'params'
-	},
-	'hapi':{
-		'read.time.min':'time.min',
-		'read.time.max':'time.max',
-		'read.time.inter':None,
-		'bin.time.max':None,
-		'read.opts':'parameters'
-	}
-	# Add others here.  Note the das3 keys are just notional, they
-	# can be changed as long as the public interface is changed to
-	# match
-}
-
 def stdFormKeys(sConvention):
 	"""Get the standard time parameter keys based on the call convention
 	For das flex, the key names are picked for coordinate names to help the
@@ -369,7 +349,9 @@ def _mergeSrcCoordInfo(dOut, dProps, fLog):
 	# so set that one up.  
 	dTime = _getDict(dCoords, 'time')
 
-	(sBegKey, sEndKey, sResKey, sIntKey, sOptKey) = g_tKeyConvention
+	(
+		sBegKey, sEndKey, sResKey, sIntKey, sOptKey, sFmtKey, sVerKey, sKeyComp
+	) = g_tKeyConvention
 	
 	if 'label' not in dTime: dTime['label']  = 'Time'
 
@@ -495,7 +477,9 @@ def _mergeDas2Params(dOut, dProps, fLog):
 	entry as a courtesy.
 	"""
 
-	(sBegKey, sEndKey, sResKey, sIntKey, sOptKey) = g_tKeyConvention
+	(
+		sBegKey, sEndKey, sResKey, sIntKey, sOptKey, sFmtKey, sVerKey, sKeyComp
+	) = g_tKeyConvention
 
 	dProto = _getDict(dOut, 'protocol')
 	dGet = dProto['httpParams']
@@ -792,7 +776,7 @@ def _mergeFormat(dConf, dOut, dProps, fLog):
 
 # ########################################################################## #
 
-def makeGetSrc(fLog, dConf, sPath, sLocalId = None):
+def makeGetSrc(fLog, dConf, sPath, sLocalId = None, lFilters = []):
 	"""Create an HttpStreamSrc object from a DSDF file and the given server
 	configuration information.
 
@@ -800,18 +784,21 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None):
 	server and format conversion capabilities.
 
 	Args:
+		fLog - An object with a .write method
 		dConf - The das2 server configuration dictionary
 		sPath - The path to the DSDF file
-		fLog - An object with a .write method
-		sTarget - The information target, one of 'internal', 'exteral' or 
-			'any'.  Mostly used to avoid loading suggested GUI info for 
-			internal processing, or command handling for external clients.
+		sLocalId - The local ID of the data source, ex: 'Juno/WAV/Survey'
+		lFilters - Any additional filter commands to add, for example a 
+		   PSD generator or a SPICE data addition
 
 	Throws:
 		QueryError if dsdf doesn't exist
 		RemoteServer if dsdf is for someone else
 		ServerError if there is a syntax error or other misconfiguration
 	"""
+
+	if len(lFilters) > 0:
+		raise ValueError("Adding stream filter commands is not yet implemented")
 
 	sName = bname(sPath).replace(".dsdf","")
 	dDsdf = loadDsdf(dConf, sName, sPath, fLog)
@@ -885,7 +872,10 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None):
 	dGet = {}
 	dProto['httpParams'] = dGet
 	
-	(sBegKey, sEndKey, sResKey, sIntKey, sOptKey) = g_tKeyConvention
+	(
+		sBegKey, sEndKey, sResKey, sIntKey, sOptKey, sFmtKey, sVerKey, sKeyComp
+	) = g_tKeyConvention
+
 
 	dGet[sBegKey] = {
 		'required':True, 'type':'isotime',
@@ -1108,7 +1098,10 @@ def makeSockSrc(fLog, dConf, sPath, sLocalId=None):
 	dGet = {}
 	dProto['httpParams'] = dGet
 	
-	(sBegKey, sEndKey, sResKey, sIntKey, sOptKey) = g_tKeyConvention
+	(
+		sBegKey, sEndKey, sResKey, sIntKey, sOptKey, sFmtKey, sVerKey, sKeyComp
+	) = g_tKeyConvention
+
 
 	dGet[sBegKey] = {
 		'required':True, 'type':'isotime',
@@ -1152,19 +1145,21 @@ def makeSockSrc(fLog, dConf, sPath, sLocalId=None):
 
 # ########################################################################## #
 
-def makeInternal(fLog, dConf, sPath, sLocalId):
+def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 	"""Get all the items needed for the internal server interface that are
 	not to be sent out to the clients.  This includes:
 
 	commands
-		.read      (from reader=, das2Stream=, qstream=)
-		.date
-		.bin       (from reducer=, das2Stream=, qstream=)
-		.format
+		read.      (from reader=, das2Stream=, qstream=)
+		date.
+		bin.       (from reducer=, das2Stream=, qstream=)
+		format.    (just include everything we have)
 
-	authorization (from readAccess=)
+	authorization (from readAccess=, from securityRealm=)
 
-	authentication (from securityRealm=)
+	Args:
+		lFilters - A list of filter plugins for items like PSD 
+		           and SPICE X-Forms
 	"""
 
 	dOut = {}
@@ -1181,7 +1176,9 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 	elif _isPropTrue(dProps, 'das3Stream'):
 		dOutType = {'type':'das','version':'3'}
 
-	(sBegKey, sEndKey, sResKey, sIntKey, sOptKey) = g_tKeyConvention
+	(
+		sBegKey, sEndKey, sResKey, sIntKey, sOptKey, sFmtKey, sVerKey, sKeyComp
+	) = g_tKeyConvention
 
 	dParams = _getDict(dOut, 'parameters')
 	dTr = _getDict(dParams, 'translate')
@@ -1196,10 +1193,11 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 	(sF, sA) = ('function', 'args')
 	dFiles = _getDict(dOut, 'files')
 	lBaseName = _getList(dFiles, 'baseName')
-	lBaseName.append({sF:'echo',   sA:[  sLocalId.split('/')[-1].lower()  ]} )
+	lId = [s.lower() for s in sLocalId.split('/')]
+	lBaseName.append({sF:'echo',    sA:[ "%s_%s_"%tuple(lId[:2])  ]} )
 	lBaseName.append({sF:'isorange',sA:["#[%s]"%sBegKey, "#[%s]"%sEndKey]} )
-	
-	lCmds = _getList(dOut, 'commands')
+	lBaseName.append({sF:'timeres', sA:["_", "#[%s#@#]"%sResKey, "s"]})
+	dCmds = _getDict(dOut, 'commands')
 	
 	# By default, both das2 and dasFlex sources output the same thing
 	# User can customize if desired downstream
@@ -1234,7 +1232,6 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 		# Two variations, one for requires interval
 		sInterval = ''
 		if _isPropTrue(dProps, 'requiresInterval'):  # Ephemeris readers
-			 sInternal = '#[%s] '%sIntKey
 			 lBaseName.append({sF:'timeres', sA:["#[%s]"%sIntKey]})
 			
 		if _isPropTrue(dProps, 'dropParams'):
@@ -1250,8 +1247,13 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 		dReader['title']  = 'Full resolution upstream data reader'
 		dReader['output'] = dOutType
 		dReader['order']  = 1
+		dReader['activation'] = [
+			{"key":sBegKey},
+			{"key":sFmtKey, "value":"das"},
+			{"key":sVerKey, "value":"2"}
+		]
 
-		lCmds.append(dReader)
+		dCmds["das2_reader"] = dReader
 
 	# Is reduction allowed? ####################################
 	bReduce = True
@@ -1277,17 +1279,18 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 					sReducer = dConf['QDS_REDUCER']
 
 		if sReducer:
-			lCmds.append({
+			dCmds["das_average"] = {
 				'label':sReducer,
 				'template':'%s #[%s]'%(sReducer, sResKey),
 				'triggers':[{"key":sResKey,"value":0,"compare":"gt"}],
 				'input': dOutType, 'output': dOutType,
 				'order': 3
-			})
+			}
 			lBaseName.append({sF:'timeres', sA:'#[%s#@#]'%sResKey})
 	
 	# Cache Section #####################################
 	if 'cacheLevel' in dProps:
+		fLog.write("Warning: Caching is not yet supported in dasflex")
 		
 		dCache = _getDict(dOut, 'cache')
 		
@@ -1329,8 +1332,13 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 			dSets[sLevel] = dBlk
 
 	# Authorization
+	sRealm = None
+	if 'securityRealm' in dProps and '00' in dProps['securityRealm']:
+		sRealm = dProps['securityRealm']['00']
+
 	if 'readAccess' in dProps and '00' in dProps['readAccess']:
 		dAuth = _getDict(dOut, 'authorization')
+		dAllow = _getDict(dAuth, 'allow')
 
 		lMethods = [s.strip() for s in dProps['readAccess']['00'].split('|')]
 		if len(lMethods) > 0:
@@ -1347,24 +1355,20 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 				sCheckType = lMeth[0].lower().strip()
 				
 				if sCheckType == 'age':
-					dAuth['params'] = [{
-						"key":sEndKey, "reference":"now", "delta":"-%s"%lMeth[1],
-						"compare":"lt"
+					dAllow['params'] = [{
+						"value":"#[%s]"%sEndKey, "compare":"le", "to":"age %s"%lMeth[1],
 					}]
 				elif sCheckType == 'group':
 					lGroups.append(lMeth[1])
 				elif sCheckType == 'user':
 					lUsers.append(lMeth[1])
 
-			if len(lGroups) > 0:
-				dAuth['user_in_group'] = lGroups
-			if len(lGroups) > 0:
-				dAuth['user_is'] = lUsers
-
-	# Authentication
-	if 'securityRealm' in dProps and '00' in dProps['securityRealm']:
-		dAuth = _getDict(dOut, 'authentication')
-		dAuth['securityRealm'] = dProps['securityRealm']['00']
+			if len(lGroups) > 0 or len(lUsers) > 0:
+				dAllow['passfile'] = {}
+				if sRealm: dAllow['passfile']["realm"] = sRealm
+				if len(lGroups) > 0: dAllow['passfile']['groups'] = lGroups
+				if len(lUsers) > 0: dAllow['passfile']['users']  = lUsers
+				
 
 	# Formatting commands and default format
 	# Put in auto-keys and translations for other systems by default
@@ -1390,7 +1394,9 @@ def makeInternal(fLog, dConf, sPath, sLocalId):
 
 
 	# Add our supported output conversion interface controls and parameters
-	lCmds += formats.getCommands(dConf, lRdrOut)
+	dFmtCmds = formats.getCommands(dConf, lRdrOut)
+	for sCmd in dFmtCmds:
+		dCmds[sCmd] = dFmtCmds[sCmd]
 
 	return dOut
 

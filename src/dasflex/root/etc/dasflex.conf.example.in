@@ -35,7 +35,7 @@ CONTACT_EMAIL = "update&#45;dasflex&#46;conf&#64;nowhere&#45;ed&#117;"
 CONTACT_URL  = "https://update-dasflex.conf.nowhere.edu/~someone/"
 
 # The top location of data source include files
-DATASRC_INC  = "%(ROOT_DIR)s/sdef/include"
+DATASRC_INC  = "%(ROOT_DIR)s/include"
 
 # If using simple local authentication, the name of the group and users files
 PASSWD_FILE = "%(ETC_DIR)s/passwd"
@@ -156,32 +156,42 @@ DAS1_TO_DAS2 = "das2_from_das1"
 CACHE_ROOT = "%(CACHE_DIR)s"
 
 # Set a default stream reducer. Data source definitions can override this
-# setting by defining the following object in thier *.json files.
+# setting by defining the following object in thier internal.json files.
 #
-#   internal : commands : bin 
+#  commands.das_average
 #
 D2S_REDUCER = "das2_bin_avgsec"
 
 # Set a default cache reader.  Data source definitions can override this
-# setting by defining the following object in their *.json files:
+# setting by defining the following object in their internal.json file:
 #
-#  internal : commands : readCache
+#  commands.das_cache_rdr
 #
 D2S_CACHE_RDR = "das2_cache_rdr"
 
-# Set a default delimited text values converter.  Data sources can
-# override this by defining the following object in their *.json files:
+# Set a default delimited text values converter.  Data sources can override
+# this by defining the following object in their internal.json file:
 #
-#   internal : commands : formatCsv
+#   commands.das_csv
 #
-D2S_CSV_CONVERTER = "das2_csv"
+D2S_CSV_CONVERTER = "das3_csv"
+
+
+# Set a default Common Data Format converter.  Data sources can override
+# this by defining the following object in their *.json files:
+#
+#  commands.das_cdf
+#
+D2S_CDF_CONVERTER = "das3_cdf"
+
 
 # Set default das v2 binary to das v2 text stream converter.  Data sources
-# can override by defining the following object in their *.json files:
+# can override by defining the following object in their internal.json file:
 #
-#  internal : commands : convD2sD2t
+#  commands.das_text
 #
 D2S_TO_UTF8 = "das2_ascii"
+
 
 # Default QStream reducers and cache readers can be defined similar to
 # the convertions followed for D2S streams above.

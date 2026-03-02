@@ -18,6 +18,9 @@ g_sStdHapi2 = 'hapi2.json'
 g_sStdVo  = 'voservice.xml'
 g_sStdIntern = 'internal.json'
 
+# Versions of catalog items produced by the module
+versions = {'Catalog':'0.5', 'SourceSet':'0.1', 'HttpStreamSrc':'0.7'}
+
 # ########################################################################## #
 
 def _loadJson(sInPath):
@@ -156,8 +159,8 @@ def makeSrcSet(dConf, sSet, lInput, sOutPath):
 		return False
 
 	dCat = {
-		'type':'SourceSet', 'version':'0.1','coords':{},'data':{},'contacts':[],
-		'catalog':{}
+		'type':'SourceSet', 'version':versions['SourceSet'],'coords':{},'data':{},
+		'contacts':[], 'catalog':{}
 	}
 	
 	for s in ('name', 'label','title'): 
@@ -205,7 +208,7 @@ def makeSrcSet(dConf, sSet, lInput, sOutPath):
 			# Re-use the source file already loaded
 			dSources['flex'] = {
 				'type':'HttpStreamSrc', 'purpose':'primary-stream',
-				'label':'Primary Source',
+				'label':'Primary Source', 'version':versions['HttpStreamSrc'], 
 				'description':'A semantic interface definition as '+\
 				   'well as a server protocol API definition for an HTTP GET '+\
 				   'based, variable resolution, fixed coverage period, data source.',
@@ -290,7 +293,7 @@ def addCatTitle(dConf, sRoot, sLocalId, sTitle):
 		dCat = _loadJson(sPath)
 	else:
 		dCat = {
-			'version':'0.5', 'type':'Catalog', 'label':sLabel, 'catalog':{}
+			'version':versions['Catalog'], 'type':'Catalog', 'label':sLabel, 'catalog':{}
 		}
 
 	dCat['title'] = sTitle

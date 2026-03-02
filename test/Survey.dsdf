@@ -1,0 +1,30 @@
+localId = 'Juno/WAV/Survey'
+description = 'Survey Mode Electric or Magnetic Spectral Densities'
+
+reader = 'waves_pds_srvrdr -l error flight'
+das2Stream = 1
+
+; Implicit X time coordinate added by default
+
+; Specify Y coordinate, elements are: name, axis, units, [title]
+coord_01 = 'frequency | Y | Hz'
+
+; Specify data items, elements are: name in stream, axis, units, title, [enabled]
+data_01 = 'specdens | Z | V**2 m**-2 Hz**-1 | Electric Spectral Density'
+
+readAccess = 'age:6m|GROUP:juno'
+securityRealm = 'Juno Magnetospheric Working Group'
+
+validRange = '2010-09-01T00:00:00 to now'
+
+techContact = 'Chris Piker <chris-piker@uiowa.edu>'
+sciContact = 'Bill Kurth <william-kurth@uiowa.edu>'
+
+param_00 = 'ASCII | If specified, output is in UTF-8 format'
+param_01 = 'KEEP-SPIKES | If specified single LFR packets with a pre-amp toggle are retained in the output'
+param_02 = 'XMAS | If specified only output the Xmas flag'
+param_03 = 'B    | Only output magnetic data from the low-band of the Low Frequency Receiver'
+param_04 = 'LFRL | Only output electric from the low-band of the Low Frequency Receiver'
+param_05 = 'LFRH | Only output data from the high-band of the Low Frequency Receiver'
+param_06 = 'HFRL | Only output data from the baseband of the High Frequency Receivers'
+param_07 = 'HFRH | Only output data from the frequency down-mixed sections of the High Frequency Receivers'

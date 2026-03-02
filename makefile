@@ -14,7 +14,7 @@
 # though N_ARCH is still set for older install methods.
 
 # Make sure this matches with pyproject.toml
-VERSION:=0.5rc1
+VERSION:=0.5rc2
 
 ifeq ($(PY_BIN),)
 PY_BIN=$(shell which python)
@@ -60,7 +60,7 @@ handlers/info.py handlers/intro.py handlers/logo.py handlers/peers.py \
 handlers/resource.py handlers/timedata.py handlers/verify.py \
 \
 scripts/cgimain.py scripts/cgilog.py scripts/websocd.py scripts/cupdate.py \
-scripts/das2test.py scripts/mkroot.py scripts/todo.py \
+scripts/das2test.py scripts/mkroot.py scripts/todo.py scripts/add.py\
 \
 tasks/__init__.py tasks/cachetask.py tasks/covertask.py tasks/listtask.py \
 tasks/usagetask.py \
@@ -99,6 +99,11 @@ root/Examples/Waveform/vgr_data/WFROWPFX.FMT \
 
 SRC_FILES:=$(patsubst %,src/dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
 
+SCRIPTS:=websocd cupdate das2test mkroot add
+# Task management not yet re-implimented
+# todo
+SCRIPT_MOD:=$(patsubst %,dasflex.scripts.%,$(SCRIPTS))
+
 # ########################################################################### #
 
 .PHONY: build test install distclean clean
@@ -114,19 +119,24 @@ build_venv/bin/python:
 	$(PY_BIN) -m $(VENV_MOD) build_venv
 	build_venv/bin/python -m pip install build
 
-# Run unit tests.  Only auth.py has unittests so far
+# Make sure top level scripts can at least run well enough to print their help
+# text, then run unittests.  Only auth.py has unittests so far. 
 test:dist/$(WHEEL_FILE)
 	$(PY_BIN) -m $(VENV_MOD) test_venv
 	./test_venv/bin/python -m pip install $(PIP_ARGS) $(DAS_WHEEL_PATH)
 	./test_venv/bin/python -m pip install $(PIP_ARGS) dist/$(WHEEL_FILE)
-	./test_venv/bin/python -m dasflex.webutil.auth
+	@for MOD in $(SCRIPT_MOD) ; do ./test_venv/bin/python -m $$MOD -h ; done
+	./test_venv/bin/python -m unittest dasflex.webutil.auth
+	mkdir -p $(PWD)/test_srv
+	./test_venv/bin/dasflex_mkroot -n $(PWD)/test_srv BUILD_HOST
+	./test_venv/bin/dasflex_add -I -c test_srv/etc/dasflex.conf test/Survey.dsdf
 
 install:
 	@$(PY_BIN) -m pip uninstall -y ./dist/$(WHEEL_FILE)
 	$(PY_BIN) -m pip install --pre ./dist/$(WHEEL_FILE)
 
 distclean:
-	-rm -r dist test_venv build_venv
+	-rm -r dist test_venv test_srv build_venv
 
 clean:
-	-rm -r dist test_venv
+	-rm -r test_venv test_srv build_venv

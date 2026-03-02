@@ -235,7 +235,7 @@ def main():
 	dDirs = {
 		'etc'           : dRep['ETC_DIR'], 
 		'static'        : dRep['STATIC_DIR'],
-		'sdef.commands' : "%s/commands"%sRoot
+		'sdef.commands' : "%s/include"%sRoot
 	}
 
 	if opts.bExamples:
