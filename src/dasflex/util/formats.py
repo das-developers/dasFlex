@@ -3,17 +3,18 @@
 import os.path
 import json
 
-# This is just a convetion used by this server, federated catalog items
-# advertise thier keys in an API file.
-g_tKeyConvention = (
-	"read.time.min", "read.time.max", "bin.time.max", "read.time.inter",
-	"read.opts", "format.type", "format.version", "format.nocomp"
-)
-
 g_sDas1File = 'das1.pro'
 g_sParamSecFrac = "format.secfrac"
 g_sParamSigDigit = "format.sigdigit"
 g_sParamDelim = "format.delim"
+g_sParamNoComp = 'format.nocomp'
+
+# This is just a convetion used by this server, federated catalog items
+# advertise thier keys in an API file.
+g_tKeyConvention = (
+	"read.time.min", "read.time.max", "bin.time.max", "read.time.inter",
+	"read.opts", "format.type", "format.version", g_sParamNoComp
+)
 
 # ########################################################################## #
 
@@ -153,6 +154,8 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 
 	csv                  text/csv                         .csv
 
+	cdf                  application/x-cdf                .cdf
+
 	votable      header  application/x-votable+xml        .xml
 	votable      data    application/octet-stream         .bin
 	
@@ -165,8 +168,10 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 	                      -> h-api
 	                      -> png [maybe]
                          -> csv
+                         -> cdf
      
-     das3 [all variants] -> [none]
+     das3 [all variants] -> csv
+                         -> cdf
 
 	  qstream -> png [maybe] 
 
@@ -179,6 +184,7 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 
 	  das3 [all variants] -> das3 [text,xml]
 	  das3 [all variants] -> csv
+	                      -> cdf
 	                      -> png
 	                      -> votable
 	                      -> h-api
@@ -331,7 +337,7 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 
 
 	# Generic translation formats, depending on installed converters
-	if ('D2S_CSV_CONVERTER' in dConf) and (sRdr == 'das') and (sVer != '3'):
+	if ('D2S_CSV_CONVERTER' in dConf) and (sRdr == 'das'):
 		lPropOrder = ['enabled']
 		lPropOrder += lTextOptOrder
 		dFmts['csv'] = {
@@ -360,6 +366,30 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 		for sOpt in dTextOpts:
 			dFmts['csv']['props'][sOpt] = dTextOpts[sOpt]
 
+	if ('D2S_CDF_CONVERTER' in dConf) and (sRdr == 'das') and ('cdf' in dMime):
+		lPropOrder = ['enabled', 'nocompress']
+		dFmts['cdf'] = {
+			"label":"CDF file",
+			"title":"NASA Command Data Format file",
+			"mimeTypes":[dMime['cdf']['mime']],
+			#"extension":".cdf",
+			'props':{
+				"enabled":{'type':'boolean', "xorGroup":"format", "value":False,
+					"set":{"value":True, "param":"format.type", "pval":"cdf"},
+				},
+				"nocompress":{
+					"label":"No-Compression",
+					"title":"Do not compress variables, needed for PDS compliant output.",
+					"value":False,
+					"set":{
+						"value":True,
+						"param":g_sParamNoComp,
+						"pval":"1"
+					}
+				}	
+			},
+			'order':lPropOrder
+		}
 
 	if ('DAS_TO_PNG' in dConf) and (sRdr == 'das') and (sVer != '3.0'):
 		dFmts['png'] = {

@@ -2,6 +2,8 @@
 things
 """
 
+import sys # <-- for debugging, remove before commit
+
 from os.path import dirname as dname
 from os.path import basename as bname
 from io import StringIO
@@ -163,6 +165,25 @@ def loadDsdf(dConf, sName, sPath, fLog):
 
 		return dDsdf
 
+def dsdfEntry(dDsdf, sKey, nEnt = -1, oDefault = None):
+	"""Return a dsdf Entry.  Entries are found by:
+
+		(key name, entry number)
+
+	If the entry number is less then 0, then the first entry is
+	returned, whatever it's value.
+	"""
+	if sKey not in dDsdf: return oDefault
+
+	if nEnt > -1:
+		sEnt = "%02d"%nEnt
+		if sEnt in dDsdf[sKey]: return dDsdf[sKey]
+		else: return oDefault
+
+	lEnts = list(dDsdf[sKey])
+	lEnts.sort()
+	return dDsdf[sKey][lEnts[0]]
+
 ##############################################################################
 # These are used so much, just give it a variable
 
@@ -270,7 +291,7 @@ def _ageAuthNote(dProps):
 				sAge = lMeth[1].replace('y', ' years ').replace('m', ' months ')
 				sAge = sAge.replace('d',' days ')
 				
-				sRet = "Request for data older than %s "%sAge +\
+				sRet = "Requests for data older than %s"%sAge +\
 				       "will not prompt for authentication."
 				break
 				
@@ -424,6 +445,10 @@ def _mergeSrcCoordInfo(dOut, dProps, fLog):
 				if len(lItem) > 2: dVar['props'] = {'units':{'value':lItem[2]}}
 	
 
+def _longest(l):
+	lN = [len(s) for s in l]
+	return l[ lN.index(max(lN)) ]
+
 def _mergeSrcDataInfo(dOut, dProps, fLog):
 	"""In general the das2 server has no understanding of output data 
 	values.  This information can be given explicitly in a .json file
@@ -452,8 +477,26 @@ def _mergeSrcDataInfo(dOut, dProps, fLog):
 		
 			dVar = _getDict(dData, lItem[0])
 			dVar['label'] = lItem[0][0].upper() + lItem[0][1:]
-			if len(lItem) > 1: dVar['title'] = lItem[1]
+			if len(lItem) > 1: 
+				# Assume the longests item is the title.  This is silly but
+				# it exists because DSDFs weren't that standard.
+				dVar['title'] = _longest(lItem)
+
 			if len(lItem) > 2: dVar['props'] = {'units': {'value':lItem[2]}}
+
+def _hasParam(dParams, sName):
+	"""
+	Look through items like:
+	   param_00 = 'doggy | some info | some more info | other info'
+
+	and see if the leading string ('doggy' above) matches sName
+	"""
+	for sParam in dParams:
+		l = [s.strip() for s in dParams[sParam].split('|')]
+		if len(l) and l[0].lower() == sName.lower():
+			return True
+
+	return False
 
 def _mergeDas2Params(dOut, dProps, fLog):
 	"""Merge in params.  This is a das2 thing.  Any option that is needs
@@ -475,6 +518,9 @@ def _mergeDas2Params(dOut, dProps, fLog):
 	
 	Though the final file will likely be hand edited, make a Reader Options
 	entry as a courtesy.
+
+	NOTE: If the option 'ascii' is found, it is silently dropped as dasFlex
+	      has standardized text output
 	"""
 
 	(
@@ -488,8 +534,12 @@ def _mergeDas2Params(dOut, dProps, fLog):
 	bAnyParams = False
 	bFlagSet = False
 	if 'param' in dProps:
-		bAnyParams = True
-		if len(dProps['param']) > 1:
+		nParams = len(dProps['param'])
+		if _hasParam(dProps['param'], 'ascii'):
+			nParams -= 1
+
+		bAnyParams = (nParams > 0);
+		if nParams > 1:
 			bFlagSet = True
 		
 	# Some readers have no options at all
@@ -515,6 +565,9 @@ def _mergeDas2Params(dOut, dProps, fLog):
 		for sNum in lNums:
 			lParam = [s.strip() for s in dProps['param'][sNum].split('|') ]
 			sFlag = lParam[0].lower()
+
+			if sFlag == 'ascii': continue   # dasFlex has standard text conversions
+
 			dFlags[sFlag] = {}
 
 			if len(lParam) > 1:
@@ -533,7 +586,11 @@ def _mergeDas2Params(dOut, dProps, fLog):
 	else:
 		# For readers that don't have FLAGSET make a description that preserves
 		# new lines
-		lParam = [s.strip() for s in dProps['param'][lNums[0]].split('|') ]
+		for sNum in lNums:
+			lParam = [s.strip() for s in dProps['param'][sNum].split('|') ]
+			if lParam[0].lower() != 'ascii':  # dasFlex has std text conventions
+				break
+
 		sLabel = lParam[0].lower()
 
 		dGet[sOptKey] = {
@@ -850,18 +907,25 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None, lFilters = []):
 	_mergeSrcDataInfo(dOut, dDsdf, fLog)
 	
 	# Set the authentication information
-	dProto = dOut['protocol']	
-	if 'securityRealm' in dDsdf:
-		sAuthContact = None
-		for dContact in dOut['contacts']:
-			if dContact['type'] == 'scientific':
-				sAuthContact = dContact['name']
-				break
+	dProto = dOut['protocol']
+	sRealm = dsdfEntry(dDsdf, 'securityRealm')
+	sAccess = dsdfEntry(dDsdf, 'readAccess')
+	if sAccess:
+		lMethods = [s.strip() for s in sAccess.split('|')]
+		lOutMeth = []
 
-		dProto['authorization'] = {'required':True, 'contact':sAuthContact}
-		dProto['authentications'] = [{
-			'method':'HTTP/Basic','realm':dDsdf['securityRealm']['00']
-		}]
+		for sMethod in lMethods:
+			lInMeth = [s.strip() for s in sMethod.split(':')]
+			if len(lInMeth) < 2:
+				raise ValueError("Syntax error in 'readAccess' key value")
+
+			sCheck = lInMeth[0].lower()
+			if (sCheck == 'age') and (lOutMeth.count('age') == 0):
+				lOutMeth.append('query')
+			elif (sCheck in ('group','user')) and (lOutMeth.count('http-basic') == 0):
+				lOutMeth.append('http-basic')
+
+		dProto['authorization'] = {"required":True, "methods":lOutMeth}
 
 		sAgeNote = _ageAuthNote(dDsdf)
 		if sAgeNote:
