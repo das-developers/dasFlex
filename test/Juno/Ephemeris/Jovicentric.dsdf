@@ -1,0 +1,42 @@
+; Das 2.2.2 DSDF File, See spec at https://github.com/das-developers/das2docs
+dsdfVersion          = 2.2.2
+
+; Required Entries
+description     = 'Juno Jupiter orbit parameters'
+reader          = '/project/juno/etc/invoke3.sh jephemrdr2 1'
+sourceCode      = 'https://research-git.uiowa.edu/space-physics/juno/support'
+
+das2Stream      = 1
+reducer         = 'not_reducible'
+requiresInterval = 1 
+techContact     = 'Joseph Groene <joseph-groene@uiowa.edu>'
+
+item_00         = 'radius | Distance from center of Jupiter in Jovian Radii'
+item_01         = 'long   | System III Longitude in degrees'
+item_02         = 'mlat   | Magnetic Latitude in degrees'
+item_03         = 'lt     | Local time in hours'
+item_04         = 'io_phase | Description TBD'
+item_05         = 'jovi_lat | Descrpiton HERE | optional'
+
+param_00 = 'JLAT | optional Jovigraphic latitude (planetocentric)'
+param_01 = 'JALT | optional Jupiter altitude'
+param_02 = 'JPLG | optional Jovigraphic latitude (planetographic)'
+param_03 = 'CLAT | optional Jovigraphic centrifugal latitude'
+param_04 = 'JULT | optional Jovigraphic local time'
+param_05 = 'SALT | optional Io/Europa/Ganymede altitude'
+
+;Future ephemerides needed for planning
+validRange      = '2011-08-06 to 2028-09-30'
+
+; Use Jupiter science orbit 33, 1 day intervals for testing
+testRange       = '2021-03-20 to 2021-05-12'
+testInterval    = 86400
+
+exampleRange_00 = '2021-04-15 to 2021-04-17'
+exampleInterval_00 = 300
+
+; Useful Extras
+spacecraft      = 'Juno'
+spacecraft_id   = 'JO'
+readerVersion   = 502
+

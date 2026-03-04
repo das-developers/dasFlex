@@ -427,11 +427,18 @@ def _mergeSrcCoordInfo(dOut, dProps, fLog):
 		if len(lTimeRng) > 1:
 			dTime['validRange'] = lTimeRng
 	
-	if 'interval' in dTime:
+	if 'requiresInterval' in dProps:
 		dTime['props']['inter']['set'] = {'param':sIntKey, 'required':True}
+		dTime['props']['inter']['title'] = 'Time interval between model calculations/interpolations'
+		dTime['props']['inter']['description'] = 'This parameter is used with data '+\
+			'generated from models or table interpolations such as SPICE Ephemerides '+\
+			'and magnetic field models'
 	else:
 		dTime['props']['res']['set'] = {'param':sResKey, 'required':False}
-
+		dTime['props']['res']['title'] = 'The maximum time bin width for bin-reduced data in seconds',
+		dTime['props']['res']['description'] = 'The server will return data at '+\
+			'or better than the given x-axis resolution if possible.  Leave '+\
+			'un-specified to get data at intrinsic resolution without server side averages',
 
 	if 'coord' in dProps:
 		for sNum in dProps['coord']:
@@ -955,21 +962,13 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None, lFilters = []):
 	if _isPropTrue(dDsdf, 'requiresInterval'):
 		dGet[sIntKey] = {
 			'required':True, 'type':'real', 'units':'s',
-			'label':'Interval', 
-			'title':'Time interval between model calculations/interpolations',
-			'description': 'This parameter is used with data generated from models '
-			   'or table interpolations such as SPICE Ephemerides and '
-				'magnetic field models',
+			'label':'Interval'
 		}
 
 	else:
 		dGet[sResKey] = {
 			'required':False, 'type':'real', 'units':'s',
-			'label':'Resolution', 
-			'title':'The maximum time bin width for bin-reduced data in seconds',
-			'description':'The server will return data at or better than the given '
-            'x-axis resolution if possible.  Leave un-specified to get data '
-			   'at intrinsic resolution without server side averages',
+			'label':'Resolution'
 		}
 
 	# Convert any read params to a read.options parameter
@@ -1180,22 +1179,12 @@ def makeSockSrc(fLog, dConf, sPath, sLocalId=None):
 	# See if requires interval is set, if not
 	if _isPropTrue(dDsdf, 'requiresInterval'):
 		dGet[sIntKey] = {
-			'required':True, 'type':'real', 'units':'s',
-			'label':'Interval', 
-			'title':'Time interval between model calculations/interpolations',
-			'description': 'This parameter is used with data generated from models '
-			   'or table interpolations such as SPICE Ephemerides and '
-				'magnetic field models',
+			'required':True, 'type':'real', 'units':'s', 'label':'Interval'
 		}
 
 	else:
 		dGet[sResKey] = {
-			'required':False, 'type':'real', 'units':'s',
-			'label':'Resolution', 
-			'title':'The maximum time bin width for bin-reduced data in seconds',
-			'description':'The server will return data at or better than the given '
-            'x-axis resolution if possible.  Leave un-specified to get data '
-			   'at intrinsic resolution without server side averages',
+			'required':False, 'type':'real', 'units':'s', 'label':'Resolution'
 		}
 
 	# Convert any read params to a read.options parameter
@@ -1249,9 +1238,12 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 	for sSys in ('das2','hapi'):
 		(sBegTr, sEndTr, sResTr, sIntTr, sOptTr) = stdFormKeys(sSys)
 		dTr[sSys] = {
-			sBegTr:sBegKey, sEndTr:sEndKey, sResTr:sResKey, sOptTr:sOptKey,
-			'start':sBegKey, 'stop':sEndKey, 'server':None, 'dataset':None
+			sBegTr:sBegKey, sEndTr:sEndKey, sOptTr:sOptKey, 'start':sBegKey, 
+			'stop':sEndKey, 'server':None, 'dataset':None
 		}
+		if sSys == 'das2':
+			dTr[sSys][sResTr] = sResKey
+			dTr[sSys][sIntTr] = sIntKey
 
 	# Make generic output file naming instructions
 	(sF, sA) = ('function', 'args')
@@ -1297,6 +1289,7 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 		sInterval = ''
 		if _isPropTrue(dProps, 'requiresInterval'):  # Ephemeris readers
 			 lBaseName.append({sF:'timeres', sA:["#[%s]"%sIntKey]})
+			 sInterval = '#[read.time.inter] '
 			
 		if _isPropTrue(dProps, 'dropParams'):
 			dReader = {'template':'%s %s#[%s] #[%s]'%(sCmd, sInterval, sBegKey, sEndKey)}

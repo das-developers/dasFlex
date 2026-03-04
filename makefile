@@ -132,6 +132,8 @@ test:dist/$(WHEEL_FILE)
 	./test_venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test
 	./test_venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test_srv/dsdf
 	./test_venv/bin/dasflex_cupdate $(PWD)/test_srv/etc/dasflex.conf
+	# Add section to start mini-server here, and then pull data with 
+	# a python script, thus providing an end-to-end test
 
 install:
 	@$(PY_BIN) -m pip uninstall -y ./dist/$(WHEEL_FILE)
