@@ -60,7 +60,7 @@ handlers/info.py handlers/intro.py handlers/logo.py handlers/peers.py \
 handlers/resource.py handlers/timedata.py handlers/verify.py \
 \
 scripts/cgimain.py scripts/cgilog.py scripts/websocd.py scripts/cupdate.py \
-scripts/das2test.py scripts/mkroot.py scripts/todo.py scripts/add.py\
+scripts/das2test.py scripts/mkroot.py scripts/todo.py scripts/cadd.py\
 \
 tasks/__init__.py tasks/cachetask.py tasks/covertask.py tasks/listtask.py \
 tasks/usagetask.py \
@@ -99,7 +99,7 @@ root/Examples/Waveform/vgr_data/WFROWPFX.FMT \
 
 SRC_FILES:=$(patsubst %,src/dasflex/%,$(SRC)) pyproject.toml MANIFEST.in
 
-SCRIPTS:=websocd cupdate das2test mkroot add
+SCRIPTS:=websocd cupdate das2test mkroot cadd
 # Task management not yet re-implimented
 # todo
 SCRIPT_MOD:=$(patsubst %,dasflex.scripts.%,$(SCRIPTS))
@@ -129,8 +129,8 @@ test:dist/$(WHEEL_FILE)
 	./test_venv/bin/python -m unittest dasflex.webutil.auth
 	mkdir -p $(PWD)/test_srv
 	./test_venv/bin/dasflex_mkroot $(PWD)/test_srv BUILD_HOST
-	./test_venv/bin/dasflex_add -I -c test_srv/etc/dasflex.conf -d test
-	./test_venv/bin/dasflex_add -I -c test_srv/etc/dasflex.conf -d test_srv/dsdf
+	./test_venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test
+	./test_venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test_srv/dsdf
 	./test_venv/bin/dasflex_cupdate $(PWD)/test_srv/etc/dasflex.conf
 
 install:

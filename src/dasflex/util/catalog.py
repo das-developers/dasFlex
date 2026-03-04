@@ -220,10 +220,9 @@ def makeSrcSet(fLog, dConf, sSet, lInput, sOutPath):
 			# Re-use the source file already loaded
 			dSources['flex'] = {
 				'type':'HttpStreamSrc', 'purpose':'primary-stream',
-				'label':'Primary Source', 'version':versions['HttpStreamSrc'], 
-				'description':'A semantic interface definition as '+\
-				   'well as a server protocol API definition for an HTTP GET '+\
-				   'based, variable resolution, fixed coverage period, data source.',
+				'label':'DasFlex Source',
+				'description':'A successor to das2 DSDFs. Provides multiple output formats '+\
+				'and dataset operations along with a user interface definition.',
 				'mime':'application/json',
 				'provides':_getDas3Fmts(dDas3Src),
 				'urls':[ "%s/%s"%(sSetUrl,g_sStdDas3) ]
@@ -235,8 +234,8 @@ def makeSrcSet(fLog, dConf, sSet, lInput, sOutPath):
 			dSources['flexRT'] = {
 				'type':'WebSocSrc', 'purpose':'primary-stream',
 				'label':'Real-time Source',
-				'description':'Similar to regular Das3 sources but also supports real-time '+\
-				    'data via a web socket.',
+				'description':'Similar to regular dasFlex sources but also '+\
+				    'supports real-time data via a web socket.',
 				'mime':'application/json',
 				'provides':_getDas3Fmts(dSource),
 				'urls':[ "%s/%s"%(sSetUrl,g_sStdRt) ]
@@ -245,9 +244,10 @@ def makeSrcSet(fLog, dConf, sSet, lInput, sOutPath):
 		if bname(sInPath) == g_sStdDas2:
 			sSource = _loadText(sInPath)
 			dSources['das2'] = {
-				'type':'Das2DSDF', 'purpose':'primary-stream','label':'Das2 Source',
+				'type':'Das2DSDF', 'purpose':'primary-stream',
+				'label':'Das2 DSDF',
 				'description':'A variable resolution data source description '+\
-				   'accessed via a static API',
+				   'with optional parameters accessed via a static API',
 				'mime':'text/vnd.das2.das2stream',
 				'provides':_getDas2Fmts(dMime, sSource),
 				'urls':[ "%s/%s"%(sSetUrl,g_sStdDas2)]

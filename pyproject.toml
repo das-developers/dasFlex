@@ -20,10 +20,10 @@ dasflex_cgimain  = "dasflex.scripts.cgimain:main"
 dasflex_cgilog   = "dasflex.scripts.cgilog:main"
 dasflex_websocd  = "dasflex.scripts.websocd:main"
 dasflex_cupdate  = "dasflex.scripts.cupdate:main"
+dasflex_cadd     = "dasflex.scripts.cadd:main"
 dasflex_das2test = "dasflex.scripts.das2test:main"
 dasflex_mkroot   = "dasflex.scripts.mkroot:main"
 dasflex_todo     = "dasflex.scripts.todo:main"
-dasflex_add      = "dasflex.scripts.add:main"
 
 [build-system]
 requires = [ "setuptools", "wheel" ]

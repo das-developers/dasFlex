@@ -75,9 +75,11 @@ A summary is provided below. Additional instructions can be found in each indivi
    make CDF=yes SPICE=yes
    make CDF=yes SPICE=yes test
    cd ../
+	
+	export PY_BIN=/some/system/python   # Used to make virtual env.
     
    cd ../das2py
-   make DAS2C=${PWD}/../das2C          # (optionally set PY_BIN first)
+   make DAS2C=${PWD}/../das2C          
    make DAS2C=${PWD}/../das2C test
    make DAS2C=${PWD}/../das2C examples # (optional, long test)
    cd ../

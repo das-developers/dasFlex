@@ -492,7 +492,7 @@ OPTIONS:
                This overrides any value provided by '-d' or in the source file
                itself. Not compatable with multiple inputs.
 
-	-o DIR, --out-dir=DIR
+   -o DIR, --out-dir=DIR
                Unless source definitions are to be installed (-I), they are
                normally written to the current directory.  Use this option to
                select an alternate, non-install, output directory.
