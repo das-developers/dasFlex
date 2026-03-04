@@ -32,7 +32,7 @@ summary = 'The coordinate system for these data are local magnetic '+$
 			 'field B0</li> <li>Y-axis = R x B0 (R ... radius vector of s/c)</li><li> '+$
 			 'X-axis = Y x Z</li></ul>'
 
-reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/reader.py %(INST_DIR)s/themis_data'
+reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/Params/reader.py %(INST_DIR)s/Params/themis_data'
 das2Stream = 1
 
 techContact = 'Your Name <your.name@yourplace.edu>'

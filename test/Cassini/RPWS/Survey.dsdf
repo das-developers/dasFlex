@@ -1,0 +1,154 @@
+; ----------------------------------------------------------------------------
+; Public Interface
+; ----------------------------------------------------------------------------
+
+
+; Identification -------------------------------------------------------------
+
+description = 'Calibrated, full-resolution, low-rate electric survey data (PDS level 3 files)'
+
+techContact = 'Chris Piker <chris-piker@uiowa.edu>'
+sciContact  = 'Bill Kurth <william-kurth@uiowa.edu>'
+
+coord_00       = 'time | Spacecraft Event Time | UTC '
+;coordSelect_00 = 'MIN : time.min | MAX : time.max | RES : time.res'
+;coordRange_00  = '1997-01-03T03:15 to 2017-09-15T10:35'
+
+validRange     = '1997-01-03T03:15 to 2017-09-15T10:35'
+
+coord_01 = 'frequency | Channel Center Frequency | Hz'
+
+data_01  = 'specdens | Electric Spectral Density  | V**2 m**-2 Hz**-1'
+
+das2Stream  = 1
+
+accessInfo = 'All Cassini data have been delivered to the PDS, passwords '+$
+             'and permissions are no longer required but contact with the'+$
+				 'RPWS instrument team is advised'
+
+; Associated Sources ---------------------------------------------------------
+
+; Mention ephemeris and Fce here...
+link_01 = 'overlay|das2|DasStreamSource|/uiowa/Cassini/MAG/ElectronCyclotron|Electron Cyclotron'
+link_02 = 'coords|das2|DasStreamSource|/uiowa/Cassini/Ephemeris/Saturn|Spacecraft location with respect to Saturn'
+
+; Query Parameters -----------------------------------------------------------
+
+; time.min, time.max and time.res added implicitly.  Others are defined below
+
+param_00      = 'res_cor | Resonance Correction | OPTIONAL | BOOLEAN | true'
+paramInfo_00  = 'Correct for the antenna resonance in HF2'
+
+param_01      = 'bg_div  | Background division | OPTIONAL | REAL | | 1 to 50'
+paramInfo_01  = 'Background division using the Nth percentile as the background'
+
+param_02      = 'sensor_mash| Sensor Merge | OPTIONAL | BOOLEAN | false'
+paramInfo_02  = 'Process all sensors as one big conglomeration. This option is'+$
+                'incompatable with background division.'
+
+param_03        = 'nix | Filter Data Values | OPTIONAL | FLAG_SET | '+$
+                  'mfdr_mfr2,mfr3_hfra,hfra_mfr,hfrc_hf1,hf1_hfrc,hfrc_hf2,'+$
+                  'hf2_hfrc,hf1_pwr,hf2_pwr,bad_data,hfr_snd,lp_rswp,fake,prescale_0 '
+					 
+paramInfo_03    = 'Remove data values for a variety of reasons'
+
+paramValInfo_03 = 'mfdr_mfr2:Remove MFDR frequencies outside the bandwidth of MFR band 2'+$
+                  '|mfr3_hfra:Remove MFR band 3 frequencies which conflict with HFR band A.'+$
+                  '|hfra_mfr:Remove HFR band A frequencies which conflict with MFR band 3.'+$
+                  '|hfrc_hf1:Remove the HFR band C frequencies which conflict with HFR band HF1.'+$
+                  '|hf1_hfrc:Remove the HFR band HF1 frequencies which conflict with HFR band C.'+$
+                  '|hfrc_hf2:Remove the HFR band C frequencies which conflict with HFR band HF2.'+$
+                  '|hf2_hfrc:Remove the HFR band HF2 frequencies which conflict with HFR band C.'+$
+                  '|hf1_pwr:Remove the HFR band HF1 frequencies that are power supply harmonics, 50Khz.'+$
+                  '|hf2_pwr:Remove the HFR band HF2 frequencies that are power supply harmonics, 50Khz.'+$
+                  '|bad_data:Remove corrupted data packets'+$
+                  '|hfr_snd:Remove data captured during the HFR sounder'+$
+                  '|lp_rswp:Remove data captured during the langmuir probe raw sweep'+$
+                  '|fake:Remove data that was constructed on the ground'+$
+                  '|prescale_0:Remove LFDR/MFDR data which had a digital prescale of zero''
+
+param_04      = 'rm_cap_corr | Remove Cap Corr | OPTIONAL | BOOLEAN | false'
+paramInfo_05  = 'Remove the antenna base capacitance correction'
+
+param_06      = 'rm_ant_len | Remove Antenna | OPTIONAL | BOOLEAN | false'
+paramInfo_07  = 'Remove the antenna length, data output units become V**2 Hz**-1'
+
+param_08        = '-lfdr | LFDR Sensor Set | OPTIONAL | FLAG_SET | Ex,Ew | Ex,Ew'
+paramInfo_08    = 'Set Low Frequency Digital Receiver (LFDR) sensor set'
+paramValInfo_08 = 'Ex: Dipole from Eu and Ev elements | Ew: Ew monopole antenna'
+
+param_09        = '-mfdr | MFDR Sensor Set | OPTIONAL | FLAG_SET | Ex,Ew | Ex,Ew
+paramInfo_09    = 'Set Medium Frequnecy Digital Receiver (MFDR) sensor set'
+paramValInfo_09 = 'Ex: Dipole from Eu and Ev elements | Ew: Ew monopole antenna '
+
+
+param_10        = '-mfr | MFR Sensor Set | OPTIONAL | FLAG_SET | 1,2,3,Ex,Ew | 1,3,Ex,Ew
+paramInfo_10    = 'Set MFR sensor set'
+paramValInfo_10 = '1: MFR Band 1 (any sensor) | 2: MFR Band 2 (any sensor) | '+$
+                  '3: MFR Band 3 (any sensor) | '+$
+                  'Ex: Dipole from Eu and Ev elements | Ew: Ew monopole'
+
+
+param_11        = '-hfr | HFR Sensor Set | OPTIONAL | FLAG_SET | A,B,C,1,2,Eu,Ev,Ex,Ew | A,B,C,1,2,Eu,Ev,Ex,Ew
+paramInfo_11    = 'Set MFR sensor set, defaults to A,B,C,1,2,Eu,Ev,Ex,Ew'
+paramValInfo_11 = 'A: HFR Band A (any sensor)|B: HFR Band B (any sensor)|'+$
+                  'C: HFR Band C (any sensor)|1: HFR Band HF1 (any sensor)|'+$
+                  '2: HFR Band 2 (any sensor)|Eu: Eu monopole antenna|Ev: Ev monopole antenna|'+$
+						'Ex: Dipole of Eu and Ev elements|Ew: Ew monopole antenna'
+
+; Sub sources -----------------------------------------------------------------
+
+; Reader output not suitable for votable and hapi formats, don't bother to 
+; split into homogeneous sub-sources
+
+; Query Examples --------------------------------------------------------------
+
+exampleQuery_00  = 'time.min=2006-001 | time.max=2006-002 | time.res=30'
+exampleInfo_00   = 'A late mission periapsis'
+
+; Example repeated in das 2.2 dsdf format
+exampleRange_00  = '2016-001 to 2016-002'
+exampleParams_00 = '-lfdr ExEw -mfdr ExEw -mfr 13ExEw -hfr ABC12EuEvExEw -n hfr_snd -n lp_rswp -n bad_data -n dpf_zero -n mfdr_mfr2 -n mfr3_hfra -n hf1_hfrc'
+
+; ----------------------------------------------------------------------------
+; Internal Details 
+; ----------------------------------------------------------------------------
+
+; Authentication -------------------------------------------------------------
+				 
+;readAccess  = 'AGE:1y | GROUP:cassiniTeam'
+
+; Reader ---------------------------------------------------------------------
+
+;Not needed due to invoke.sh usage, but neat to support anyway
+;readerEnv = 'CAS_NAIF_METAKERNEL=/project/cassini/spice/kernels/cas_kernels.txt'
+
+readerCmd = '/project/cassini/cfg/invoke.sh rpws_lr_pdsrdr -s -tStart "%{time.min}"'+$
+            '-tStop "%{time.max}" %{res_cor} %{bg_div} %{sensor_mash} %{nix} %{rm_cap_corr}'+$
+            ' %{rm_ant_len} %{lfdr} %{mfdr} %{mfr} %{hfr} | '+$
+				'/project/cassini/etc/invoke.sh das2_from_tagged_das1 -s -tBeg %{time.min}'
+				
+readerTrans_00 = 'res_cor     | true,false      | -a, '
+readerTrans_01 = 'bg_div      | -b %{VALUE}'
+readerTrans_02 = 'sensor_mash | true,false      | -c,'
+readerTrans_03 = 'nix         | -n %{FLAGS," -n "}'
+readerTrans_04 = 'rm_cap_corr | true,false      | -n bascap,'
+readerTrans_05 = 'rm_ant_len  | true,false      | -n antlen,'
+readerTrans_06 = 'lfdr        | -lfdr %{FLAGS,""}'
+readerTrans_07 = 'mfdr        | -mfdr %{FLAGS,""},
+readerTrans_08 = 'mfr         | -mfr %{FLAGS,""}'
+readerTrans_09 = 'hfr         | -hfr %{FLAGS,""}'
+
+; Reader command for 2.2 dsdfs
+reader	   = '/project/cassini/etc/invoke.sh rpws_lr_das2rdr.sh'
+
+
+; Reducer --------------------------------------------------------------------
+
+; Use default reducer
+
+; Cache in Coordinates -------------------------------------------------------
+
+; No caching supported
+
+

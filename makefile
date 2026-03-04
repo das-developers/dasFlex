@@ -14,7 +14,7 @@
 # though N_ARCH is still set for older install methods.
 
 # Make sure this matches with pyproject.toml
-VERSION:=0.5rc2
+VERSION:=0.6rc1
 
 ifeq ($(PY_BIN),)
 PY_BIN=$(shell which python)
@@ -77,17 +77,17 @@ root/etc/das2peers.ini.example.in \
 root/Examples/_dirinfo_.dsdf \
 root/Examples/UNLICENSE \
 root/Examples/Auth/sine.py \
-root/Examples/Auth/source.dsdf.in \
+root/Examples/Auth.dsdf.in \
 root/Examples/Params/reader.py \
-root/Examples/Params/source.dsdf.in \
+root/Examples/Params.dsdf.in \
 root/Examples/Params/themis_data/CAA_EST_UG_STA_v36.pdf \
 root/Examples/Params/themis_data/tha_l3_sm_20080629_171151_20080629_171152_burst_v01.cdf \
 root/Examples/Random/reader.py \
-root/Examples/Random/source.dsdf.in \
+root/Examples/Random.dsdf.in \
 root/Examples/Spectra/reader.sh.in \
-root/Examples/Spectra/source.dsdf.in \
+root/Examples/Spectra.dsdf.in \
 root/Examples/Waveform/reader.py \
-root/Examples/Waveform/source.dsdf.in \
+root/Examples/Waveform.dsdf.in \
 root/Examples/Waveform/vgr_data/example_wfrm-spectra.png \
 root/Examples/Waveform/vgr_data/PDSFORMAT.LBL \
 root/Examples/Waveform/vgr_data/VG1_1979-03-01_12-26-11-956.DAT \
@@ -128,8 +128,10 @@ test:dist/$(WHEEL_FILE)
 	@for MOD in $(SCRIPT_MOD) ; do ./test_venv/bin/python -m $$MOD -h ; done
 	./test_venv/bin/python -m unittest dasflex.webutil.auth
 	mkdir -p $(PWD)/test_srv
-	./test_venv/bin/dasflex_mkroot -n $(PWD)/test_srv BUILD_HOST
-	./test_venv/bin/dasflex_add -I -c test_srv/etc/dasflex.conf test/Survey.dsdf
+	./test_venv/bin/dasflex_mkroot $(PWD)/test_srv BUILD_HOST
+	./test_venv/bin/dasflex_add -I -c test_srv/etc/dasflex.conf -d test
+	./test_venv/bin/dasflex_add -I -c test_srv/etc/dasflex.conf -d test_srv/dsdf
+	./test_venv/bin/dasflex_cupdate $(PWD)/test_srv/etc/dasflex.conf
 
 install:
 	@$(PY_BIN) -m pip uninstall -y ./dist/$(WHEEL_FILE)

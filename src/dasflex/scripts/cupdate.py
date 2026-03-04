@@ -6,6 +6,7 @@ import json
 import os.path
 from os.path import join as pjoin
 from os.path import dirname as dname
+from os.path import basename as bname
 import optparse
 from io import StringIO
 
@@ -26,11 +27,15 @@ if sys.excepthook != sys.__excepthook__:
 			
 def perr(item):
 	"""If input item is bytes encode as utf-8 first"""	
-	if isinstance(item, str):
-		sys.stderr.buffer.write(item.encode('utf-8'))
-		sys.stderr.buffer.write('\n'.encode('utf-8'))
-	else:
-		sys.stderr.buffer.write(item)
+	if not isinstance(item, str):
+		item = item.encode('utf-8')
+	sys.stderr.write(item)
+	sys.stderr.write('\n')
+
+class SimpleLog(object):
+	def write(self, sThing):
+		sys.stderr.write(sThing)
+		sys.stderr.write('\n')
 
 # ########################################################################## #
 # Get my config file, boiler plate that has to be re-included in each script
@@ -140,17 +145,18 @@ def getSrcSets(sRoot, dSrcSets, nMaxDepth=20, _n=0):
 	
 # ########################################################################## #
 
-def _writeFile(sPath, sOutput):
+def _writeFile(fLog, sPath, sOutput):
 	#perr("Writing: %s"%sPath)
 	sDir = dname(sPath)
 
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir)
 
+	fLog.write("Writing: %s"%bname(sPath))
 	with open(sPath, 'w') as f:
 		f.write(sOutput)
 
-def _writeJsonFile(sPath, dOutput):
+def _writeJsonFile(fLog, sPath, dOutput):
 	sOutput = json.dumps(dOutput, indent="  ");
 	_writeFile(sPath, sOutput)
 
@@ -239,6 +245,8 @@ def main():
 	if not opts.sCatDir:
 		opts.sCatDir = dConf['DATASRC_ROOT']
 
+	fLog = SimpleLog()
+
 	sDir = pjoin(opts.sCatDir,'root')
 	sRoot = pjoin(opts.sCatDir, 'root.json')
 	if not os.path.isfile(sRoot):
@@ -250,7 +258,7 @@ def main():
 			"catalog":{}, "title":"Local Root Catalog",
 			"separator":":/"
 		}
-		_writeJsonFile(sRoot, dRoot)
+		_writeJsonFile(fLog, sRoot, dRoot)
 
 		# Note, just because root.json was missing doesn't mean that
 		# there is nothing else in the catalog.  Go ahead and try
@@ -293,18 +301,18 @@ def main():
 		sLocalId = sSrcSetDir.replace("%s/root/"%opts.sCatDir, '')
 		#print(sLocalId)
 		perr("Node Update: %s"%sSrcSetFile)
-		U.catalog.makeSrcSet(dConf, sLocalId, dSrcSets[sSrcSetDir], sSrcSetFile)
+		U.catalog.makeSrcSet(fLog, dConf, sLocalId, dSrcSets[sSrcSetDir], sSrcSetFile)
 		lLocalSrcIds.append(sLocalId)
 
 	# Walk backwards up the tree updating catalogs as you go
 	for sLocalId in lLocalSrcIds:
-		lUpdates = U.catalog.updateFromSrc(dConf, opts.sCatDir, sLocalId)
+		lUpdates = U.catalog.updateFromSrc(fLog, dConf, opts.sCatDir, sLocalId)
 		if not lUpdates:
 			return 7
 		perr("Node Update: %s"%("\n             ".join(lUpdates)))
 
 	# Recreate the summary listings
-	lWrote = U.catalog.updateLists(dConf, opts.sCatDir)
+	lWrote = U.catalog.updateLists(fLog, dConf, opts.sCatDir)
 	if not lWrote:
 		return 8
 	perr("List Update: %s"%("\n             ".join(lWrote)))

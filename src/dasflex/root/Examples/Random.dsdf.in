@@ -26,7 +26,7 @@
 
 ; Required Items
 description = 'Produce random values between -10 and +10'
-reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/reader.py'
+reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/Random/reader.py'
 reducer = not_reducible
 das2Stream = 1
 techContact = 'Your Name <your.name@yourplace.edu>'

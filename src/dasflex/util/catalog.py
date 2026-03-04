@@ -34,19 +34,20 @@ def _loadText(sInPath):
 		sData = fIn.read()
 	return sData
 
-def _writeFile(sPath, sOutput):
+def _writeFile(fLog, sPath, sOutput):
 	#perr("Writing: %s"%sPath)
 	sDir = dname(sPath)
 
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir)
 
+	fLog.write("Writing: %s"%sPath)
 	with open(sPath, 'w') as f:
 		f.write(sOutput)
 
-def _writeJsonFile(sPath, dOutput):
+def _writeJsonFile(fLog, sPath, dOutput):
 	sOutput = json.dumps(dOutput, indent="  ");
-	_writeFile(sPath, sOutput)
+	_writeFile(fLog, sPath, sOutput)
 
 # ########################################################################## #
 def topCat(sRoot):
@@ -132,7 +133,7 @@ def _getDas2Fmts(dMime, sSource):
 
 	return [ formats.getMime(dMime, 'das','1','binary')[0]]
 
-def makeSrcSet(dConf, sSet, lInput, sOutPath):
+def makeSrcSet(fLog, dConf, sSet, lInput, sOutPath):
 	"""Create or update the source collection file at sPath.  Source collections
 	define a list of sources that basically return the same data but do so
 	via different methods.  They are typed by the convention, the following
@@ -143,8 +144,19 @@ def makeSrcSet(dConf, sSet, lInput, sOutPath):
 	   das-websock/1.0 --> The federted catalog websocksrc object
 	   hapi/2.0 ---> Output of das2_hapi -d source.dsdf -i -n
 
+	Args:
+		fLog - something with a .write method
+		dConf - The server configuration file
+		sSet - The sub directories (benneith the catalag/root) under which to
+		           write the source set
+		lInput - The Files that make up the source set.
+		sOutPath - The output location for the sourceset file
+
 	Returns (bool) True if the catalog was updated
 	"""
+
+	#fLog.write("lInput is %s"%lInput)
+	#fLog.write("Writing source set %s to: %s"%(sSet, sOutPath))
 
 	# First read the stream source to get basic coordinate and data info
 	dDas3Src = None
@@ -272,11 +284,11 @@ def makeSrcSet(dConf, sSet, lInput, sOutPath):
 
 		# Ignore anything else
 
-	_writeJsonFile(sOutPath, dCat)
+	_writeJsonFile(fLog, sOutPath, dCat)
 	return True
 
 # ########################################################################## #
-def addCatTitle(dConf, sRoot, sLocalId, sTitle):
+def addCatTitle(fLog, dConf, sRoot, sLocalId, sTitle):
 	"""
 	Given a local root, add a description for a generic 'Catalog' object from
 	an old *.dsdf file
@@ -298,13 +310,11 @@ def addCatTitle(dConf, sRoot, sLocalId, sTitle):
 
 	dCat['title'] = sTitle
 
-	_writeJsonFile(sPath, dCat)
-	#sys.exit(117)
-
+	_writeJsonFile(fLog, sPath, dCat)
 
 # ########################################################################## #
 
-def updateFromSrc(dConf, sRootDir, sLocalId):
+def updateFromSrc(fLog, dConf, sRootDir, sLocalId):
 
 	"""Starting with the target file walk backwards up the directory tree
 	updating catalog files
@@ -408,7 +418,7 @@ def updateFromSrc(dConf, sRootDir, sLocalId):
 			
 			dCat[sItem.lower().replace('.json','')] = dEntry
 
-		_writeJsonFile(sCatPath, dObject)
+		_writeJsonFile(fLog, sCatPath, dObject)
 		lUpdates.append(sCatPath)
 
 	return lUpdates
@@ -578,7 +588,7 @@ def _expandToSource(dCat, sPath):
 
 # ########################################################################### #
 
-def updateLists(dConf, sRoot=None):
+def updateLists(fLog, dConf, sRoot=None):
 	"""
 	Walk the sources updating the three collapsed lists.  Will update at least
 	the catalogs:
@@ -617,6 +627,7 @@ def updateLists(dConf, sRoot=None):
 	lWrote.append( pjoin(sRoot, 'das2list.txt') )
 	fOut = open(lWrote[-1], 'w')
 	fOut.write("\n".join(lDas2Items))
+	fOut.write("\n")
 	fOut.close()
 
 	# Flat all-sources list
@@ -654,7 +665,7 @@ def updateLists(dConf, sRoot=None):
 	dTopCat['title'] = 'Combined %s Server Catalog'%dConf['SERVER_NAME']
 
 	lWrote.append( pjoin(sRoot, 'catalog.json'))
-	_writeJsonFile(lWrote[-1], dTopCat)
+	_writeJsonFile(fLog, lWrote[-1], dTopCat)
 
 	return lWrote
 	
