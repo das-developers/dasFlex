@@ -456,13 +456,13 @@ def addFormatHttpParams(dConf, dParams, lRdrOut, bWebSockConn=False):
 	dParams["format.secfrac"]  = {"required":False, "type":"integer", "range":[0,9]}
 	dParams["format.sigdigit"] = {"required":False, "type":"integer", "range":[2,17]}
 	
-	if ('D2S_CSV_CONVERTER' in dConf) and (sRdr == 'das'):
+	if ('DAS_CSV_CONVERTER' in dConf) and (sRdr == 'das'):
 		dParams["format.delim"]     = {"required":False, "type":"string"}
 		dParams["format.headers"]   = {"required":False, "type":"boolean"}
 		dParams["format.csv.props"] = {"required":False, "type":"boolean"}
 		dParams["format.csv.dsid"]  = {"required":False, "type":"boolean"}
 
-	if ('D2S_CDF_CONVERTER' in dConf) and (sRdr == 'das'):
+	if ('DAS_CDF_CONVERTER' in dConf) and (sRdr == 'das'):
 		dParams["format.cdf.nocomp"]    = {"required":False, "type":"boolean"}
 
 	if (not bWebSockConn) and  ('DAS_TO_PNG' in dConf) \
