@@ -128,13 +128,14 @@ def setModulePath(dConf):
 # Writing files #
 
 def _writeFile(fLog, sPath, sOutput):
-	#perr("Writing: %s"%sPath)
+	if bname(sPath) == 'flex.json':
+		perr("Writing: %s"%sPath)
 	sDir = dname(sPath)
 
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir)
 
-	fLog.write("cadd._writeFile() Writing: %s"%sPath)
+	fLog.write("Writing: %s"%sPath)
 	with open(sPath, 'w') as f:
 		f.write(sOutput)
 
@@ -272,6 +273,8 @@ def makeSrcSet(fLog, dConf, sCatRoot, sInRoot, sPath, bSocket, sLocalId = None):
 		U.catalog.makeSrcSet(fLog, dConf, sLocalId, lOutput, lOutput[-1])
 	
 		perr("Source Def: %s"%("\n            ".join(lOutput)))
+
+		#sys.exit(117)
 
 	except Exception as e:
 		import traceback
@@ -607,10 +610,10 @@ def main():
 	psr = MyOptParse(prog="dasflex_sdef", usage="sUsage")
 
 	sDef = None
-	if os.getenv('DASFLEX_PREFIX'):
-		sDef = pjoin(os.getenv('DASFLEX_PREFIX'), 'etc', 'dasflex.conf')
-
+	if os.getenv('DASFLEX_CONFIG'):
+		sDef = os.getenv('DASFLEX_CONFIG')
 	psr.add_option('-c', '--config', dest="sConfig", default=sDef)
+
 	psr.add_option('-o', '--out-dir', dest="sOutRoot", default='.')
 	psr.add_option('-l','--local-id', dest="sLocalId", default=None)
 	psr.add_option('-d','--dir-to-id', dest="sInRoot", default=None)

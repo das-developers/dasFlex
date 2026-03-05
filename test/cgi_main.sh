@@ -27,7 +27,7 @@ fi
 
 export HTTP_USER_AGENT=bash
 export DASFLEX_CONFIG=${SRV_ROOT}/etc/dasflex.conf
-export SCRIPT_FILENAME=${SRV_ROOT}/venv/bin/dasflex_cgimain
+export SCRIPT_FILENAME=${SRV_ROOT}/bin/dasflex_cgimain
 export SERVER_NAME=localhost
 export SCRIPT_NAME=/das/server
 export PATH_INFO="$1"

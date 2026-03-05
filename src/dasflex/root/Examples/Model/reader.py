@@ -47,10 +47,11 @@ header = '''<stream version="2.2">
   <properties 
     double:zFill="-1.0e+31"
     DatumRange:xRange="%s to %s UTC"
+    Datum:xInterval="%d s"
     String:title="Solar Longitude" 
   />
 </stream>
-'''%(str(beg_time), str(end_time))
+'''%(str(beg_time), str(end_time), interval)
 
 write("[00]{:06d}{}".format(len(header), header))
 

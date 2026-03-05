@@ -158,7 +158,7 @@ def _writeFile(fLog, sPath, sOutput):
 
 def _writeJsonFile(fLog, sPath, dOutput):
 	sOutput = json.dumps(dOutput, indent="  ");
-	_writeFile(sPath, sOutput)
+	_writeFile(fLog, sPath, sOutput)
 
 
 # ########################################################################## #

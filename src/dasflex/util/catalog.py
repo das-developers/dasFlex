@@ -41,7 +41,7 @@ def _writeFile(fLog, sPath, sOutput):
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir)
 
-	fLog.write("Writing: %s"%sPath)
+	#fLog.write("Writing: %s"%sPath)
 	with open(sPath, 'w') as f:
 		f.write(sOutput)
 
@@ -408,7 +408,7 @@ def updateFromSrc(fLog, dConf, sRootDir, sLocalId):
 		for sItem in lItems:
 			if not sItem.endswith('.json'): continue
 
-			print("Reading: %s/%s"%(lDirs[i], sItem))
+			#print("Reading: %s/%s"%(lDirs[i], sItem))
 			dItem = _loadJson(pjoin(lDirs[i], sItem))
 
 			dEntry = {'urls':[ "%s/%s"%(lUrls[i], sItem) ]}

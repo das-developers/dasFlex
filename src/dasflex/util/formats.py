@@ -7,7 +7,7 @@ g_sDas1File = 'das1.pro'
 g_sParamSecFrac = "format.secfrac"
 g_sParamSigDigit = "format.sigdigit"
 g_sParamDelim = "format.delim"
-g_sParamNoComp = 'format.nocomp'
+g_sParamNoComp = 'format.cdf.nocomp'
 
 # This is just a convetion used by this server, federated catalog items
 # advertise thier keys in an API file.
@@ -337,7 +337,7 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 
 
 	# Generic translation formats, depending on installed converters
-	if ('D2S_CSV_CONVERTER' in dConf) and (sRdr == 'das'):
+	if ('DAS_CSV_CONVERTER' in dConf) and (sRdr == 'das'):
 		lPropOrder = ['enabled']
 		lPropOrder += lTextOptOrder
 		dFmts['csv'] = {
@@ -366,7 +366,7 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 		for sOpt in dTextOpts:
 			dFmts['csv']['props'][sOpt] = dTextOpts[sOpt]
 
-	if ('D2S_CDF_CONVERTER' in dConf) and (sRdr == 'das') and ('cdf' in dMime):
+	if ('DAS_CDF_CONVERTER' in dConf) and (sRdr == 'das') and ('cdf' in dMime):
 		lPropOrder = ['enabled', 'nocompress']
 		dFmts['cdf'] = {
 			"label":"CDF file",
@@ -391,7 +391,7 @@ def getFormatSelection(dConf, lRdrOut, bWebSockConn=False):
 			'order':lPropOrder
 		}
 
-	if ('DAS_TO_PNG' in dConf) and (sRdr == 'das') and (sVer != '3.0'):
+	if ('DAS_TO_PNG' in dConf) and (sRdr == 'das') and (not sVer.startswith('3')):
 		dFmts['png'] = {
 			"label":"PNG Image",
 			"title":"Output a plot image instead of data",
@@ -456,8 +456,14 @@ def addFormatHttpParams(dConf, dParams, lRdrOut, bWebSockConn=False):
 	dParams["format.secfrac"]  = {"required":False, "type":"integer", "range":[0,9]}
 	dParams["format.sigdigit"] = {"required":False, "type":"integer", "range":[2,17]}
 	
-	if ('D2S_CSV_CONVERTER' in dConf) and (sRdr == 'das') and (sVer != '3.0'):
-		dParams["format.delim"]    = {"required":False, "type":"string"}
+	if ('D2S_CSV_CONVERTER' in dConf) and (sRdr == 'das'):
+		dParams["format.delim"]     = {"required":False, "type":"string"}
+		dParams["format.headers"]   = {"required":False, "type":"boolean"}
+		dParams["format.csv.props"] = {"required":False, "type":"boolean"}
+		dParams["format.csv.dsid"]  = {"required":False, "type":"boolean"}
+
+	if ('D2S_CDF_CONVERTER' in dConf) and (sRdr == 'das'):
+		dParams["format.cdf.nocomp"]    = {"required":False, "type":"boolean"}
 
 	if (not bWebSockConn) and  ('DAS_TO_PNG' in dConf) \
 	   and (sRdr == 'das') and (sVer != '3.0'):
@@ -555,19 +561,29 @@ def getCommands(dConf, lRdrOut):
 				'output':{'type':'das','version':'2','variant':'text'},
 				'order': 5
 			}
-			
+
+		if sVer.startswith('2') or sVer.startswith('3'):
+
 			sCmd = 'das3_csv'
 			if 'D2S_CSV_CONVERTER' in dConf: sCmd = dConf['D2S_CSV_CONVERTER']
 			dFormatters['das_csv'] = {
 				'label':sCmd,
 				'title':'das to CSV converter',
-				'template':'%s #[%s#-s @#] #[%s#-r @#] #[%s#-d @#]'%(
-					sCmd, g_sParamSecFrac, g_sParamSigDigit, g_sParamDelim
-				),
+				'template':[
+					'%s #[%s#-s @#] #[%s#-r @#] #[%s#-d @#] '%(
+						sCmd, g_sParamSecFrac, g_sParamSigDigit, g_sParamDelim
+					),
+					'#[format.headers# #-n] #[format.csv.props#-p#] ',
+					'#[format.csv.dsid# #-i] '
+				],
 				'activation':[{'key':'format.type','value':'csv'}],
 				'input':{'type':'das'}, # Can do both das2 and das3
 				'output':{'type':'csv'}, 
-				'order': 5    # Same as the das2_ascii converter on purpose
+				'order': 5,    # Same as the das2_ascii converter on purpose
+				'set':[ 
+					{"key":"format.type",   "value":"das"}, 
+					{"key":"format.version","value":sVer }
+				]
 			}
 
 			sCmd = "das3_cdf"
@@ -578,7 +594,12 @@ def getCommands(dConf, lRdrOut):
 				'template':'%s #[%s#-u#]'%(sCmd, sKeyComp),
 				'activation':[{'key':'format.type','value':'cdf'}],
 				'input':{'type':'das'},
-				'order':5
+				'output':{'type':'cdf'},
+				'order':5,
+				'set':[ 
+					{"key":"format.type",   "value":"das"}, 
+					{"key":"format.version","value":sVer }
+				]
 			}
 			
 			if 'DAS_TO_PNG' in dConf:

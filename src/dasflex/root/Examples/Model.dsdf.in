@@ -33,7 +33,7 @@ requiresInterval = 1
 das2Stream = 1
 techContact = 'Your Name <your.name@yourplace.edu>'
 exampleRange_00 = '2026-02-01 to 2026-03-01 UTC'
-exampleInterval_00 = 4320
+exampleInterval_00 = 1800
 
 ; Optional Items
 localId = 'Examples/Model'

@@ -28,7 +28,8 @@ def pinfo(sMsg):
 # ########################################################################### #
 def copyFile(path, sDest, dRep):
 	# Open anything ending in ".in" in text mode and do replacement.
-	# otherwise just copy over the bytes
+	# otherwise just copy over the bytes.  If the file ends in .sh
+	# make it as executable
 
 	if str(path).endswith(".hide"):
 		return None
@@ -57,6 +58,10 @@ def copyFile(path, sDest, dRep):
 		with path.open(mode='rb') as fIn:
 			with open(sDest, 'wb') as fOut:
 				fOut.write(fIn.read())
+
+	if str(sDest).endswith('.sh'):
+		os.chmod(sDest, 0o755)
+
 
 # ########################################################################### #
 def copySub(path, sStripTo, sRep, dRep):

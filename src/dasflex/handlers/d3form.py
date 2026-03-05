@@ -1135,11 +1135,12 @@ def prnOptGroupForm(
 					sout(fOut, '<label for="%s">%s</label>'%(sCtrlId, dProp['title']))
 				else:
 					sout(fOut, '<label for="%s">%s</label>'%(sCtrlId, sName))
-				
-			if 'description' in dProp:
-				lDesc = dProp['description'].split('\n')
-				sDesc = '<br>\n'.join(lDesc)
-				sout(fOut, '<p>%s</p>'%sDesc)
+			
+			# Descriptions should go in tool-tips, not in-line
+			#if 'description' in dProp:
+			#	lDesc = dProp['description'].split('\n')
+			#	sDesc = '<br>\n'.join(lDesc)
+			#	sout(fOut, '<p>%s</p>'%sDesc)
 
 			# These start pre-populated with a value that is visible to the user
 			# so they can't use pval's

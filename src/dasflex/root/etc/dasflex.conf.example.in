@@ -171,7 +171,7 @@ D2S_CACHE_RDR = "das2_cache_rdr"
 #
 #   commands.das_csv
 #
-D2S_CSV_CONVERTER = "das3_csv"
+DAS_CSV_CONVERTER = "das3_csv"
 
 
 # Set a default Common Data Format converter.  Data sources can override
@@ -179,7 +179,7 @@ D2S_CSV_CONVERTER = "das3_csv"
 #
 #  commands.das_cdf
 #
-D2S_CDF_CONVERTER = "das3_cdf"
+DAS_CDF_CONVERTER = "das3_cdf"
 
 
 # Set default das v2 binary to das v2 text stream converter.  Data sources

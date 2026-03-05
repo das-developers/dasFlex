@@ -436,10 +436,10 @@ def _mergeSrcCoordInfo(dOut, dProps, fLog):
 			'and magnetic field models'
 	else:
 		dTime['props']['res']['set'] = {'param':sResKey, 'required':False}
-		dTime['props']['res']['title'] = 'The maximum time bin width for bin-reduced data in seconds',
+		dTime['props']['res']['title'] = 'The maximum time bin width for bin-reduced data in seconds'
 		dTime['props']['res']['description'] = 'The server will return data at '+\
 			'or better than the given x-axis resolution if possible.  Leave '+\
-			'un-specified to get data at intrinsic resolution without server side averages',
+			'un-specified to get data at intrinsic resolution without server side averages'
 
 	if 'coord' in dProps:
 		for sNum in dProps['coord']:
@@ -451,7 +451,6 @@ def _mergeSrcCoordInfo(dOut, dProps, fLog):
 				dVar['label'] = lItem[0][0].upper() + lItem[0][1:]
 				if len(lItem) > 1: dVar['title'] = lItem[1]
 				if len(lItem) > 2: dVar['props'] = {'units':{'value':lItem[2]}}
-	
 
 def _longest(l):
 	lN = [len(s) for s in l]
@@ -910,10 +909,9 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None, lFilters = []):
 	#	dOut['uris'] = dNode['uris']
 		
 	_mergeContacts(dOut, dDsdf, fLog)
-	
 	_mergeSrcCoordInfo(dOut, dDsdf, fLog)
 	_mergeSrcDataInfo(dOut, dDsdf, fLog)
-	
+
 	# Set the authentication information
 	dProto = dOut['protocol']
 	sRealm = dsdfEntry(dDsdf, 'securityRealm')
@@ -971,9 +969,6 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None, lFilters = []):
 			'required':False, 'type':'real', 'units':'s',
 			'label':'Resolution'
 		}
-
-	#print(json.dumps(dOut, indent=1))
-	#sys.exit(117)
 
 	# Convert any read params to a read.options parameter
 	_mergeDas2Params(dOut, dDsdf, fLog)
