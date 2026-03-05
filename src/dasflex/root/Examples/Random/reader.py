@@ -82,7 +82,7 @@ write("[00]{:06d}{}".format(len(header), header))
 
 packet = '''<packet>
   <x type="time27" units="us2000"></x>
-  <y type="ascii7" name="radius" units="Re">
+  <y type="ascii8" name="radius" units="Re">
     <properties String:yLabel="R!DE!N" />
   </y>
 </packet>
@@ -96,5 +96,5 @@ flush()  # It's good to flush stdout output right after sending headers so
 for i in range(ndata):
     dt = start_time + delta_t*i
     val = random.uniform(-10, 10)
-    write(":01:{} {:+.3f}\n".format(dt,val))
+    write(":01:{} {:+7.3f}\n".format(dt,val))
     

@@ -134,7 +134,7 @@ def _writeFile(fLog, sPath, sOutput):
 	if not os.path.isdir(sDir):
 		os.makedirs(sDir)
 
-	fLog.write("Writing: %s"%sPath)
+	fLog.write("cadd._writeFile() Writing: %s"%sPath)
 	with open(sPath, 'w') as f:
 		f.write(sOutput)
 
@@ -168,7 +168,7 @@ def importUtil(dConf):
 
 # ########################################################################## #
 
-def makeSrcSet(fLog, dConf, sCatRoot, sPath, bSocket, sLocalId = None):
+def makeSrcSet(fLog, dConf, sCatRoot, sInRoot, sPath, bSocket, sLocalId = None):
 	"""
 	Write a source set at the local-id offset from the root output directory
 	Args:
@@ -177,6 +177,8 @@ def makeSrcSet(fLog, dConf, sCatRoot, sPath, bSocket, sLocalId = None):
 		dconf - The parsed server configuration file
 
 		sCatRoot - The output area (may not be same as sroot in server config)
+
+		sInRoot - The input path to ignore when generating local ID from paths
 
 		sPath - The DSDF file to read, must be an actual source
 
@@ -194,6 +196,7 @@ def makeSrcSet(fLog, dConf, sCatRoot, sPath, bSocket, sLocalId = None):
 
 	#fLog.write("add: CatRoot: %s"%sCatRoot)
 	#fLog.write("add: sPath:   %s"%sPath)
+	#fLog.write("add: sInRoot: %s"%sInRoot)
 	#fLog.write("add: LocalId: %s"%sLocalId)
 
 	if (not os.path.isfile(sPath)) or (not sPath.lower().endswith('.dsdf')) or \
@@ -204,13 +207,13 @@ def makeSrcSet(fLog, dConf, sCatRoot, sPath, bSocket, sLocalId = None):
 	if not sLocalId:
 
 		# Check to see if we are getting local IDs from filesystem paths
-		if sLocalRoot:
-			n = sPath.find(sLocalRoot)
+		if sInRoot:
+			n = sPath.find(sInRoot)
 			if n < 0:
 				perr("Local Root %s does not appear in source path %s"%(
-					sLocalRoot, sPath
+					sInRoot, sPath
 				))
-			sLocalId = sPath[n+1:].replace(".dsdf",'').replace(".json",'')
+			sLocalId = sPath[n+len(sInRoot):].replace(".dsdf",'').replace(".json",'')
 			sLocalId = sLocalId.strip(os.sep)
 
 		else:
@@ -222,6 +225,7 @@ def makeSrcSet(fLog, dConf, sCatRoot, sPath, bSocket, sLocalId = None):
 		sLocalId = sLocalId
 
 	dPaths = U.catalog.sourceFiles(sCatRoot, sLocalId)
+
 	
 	# To add extra output filters (PSD, SPICE X-Form) include thier command 
 	# definition dictionaries below.
@@ -279,7 +283,7 @@ def makeSrcSet(fLog, dConf, sCatRoot, sPath, bSocket, sLocalId = None):
 
 # ########################################################################## #
 
-def makeSubSets(fLog, dConf, sCatRoot, sLocalRoot, sDir, bSocket):
+def makeSubSets(fLog, dConf, sCatRoot, sInRoot, sDir, bSocket):
 	"""
 	Make all sources sets at this level and maybe proceed down to a lower level
 	"""
@@ -293,21 +297,21 @@ def makeSubSets(fLog, dConf, sCatRoot, sLocalRoot, sDir, bSocket):
 		sSubPath = pjoin(sDir, sItem)
 		
 		if os.path.isdir(sSubPath):
-			lMore = makeSubSets(fLog, dConf, sCatRoot, sLocalRoot, sSubPath, bSocket)
+			lMore = makeSubSets(fLog, dConf, sCatRoot, sInRoot, sSubPath, bSocket)
 			if lMore == None:
 				return None
 			lLocalSrcIds += lMore
 		else:
 			if not sItem.endswith('.dsdf'): continue
 
-			sLocalId = sDir.replace(sLocalRoot, '')
+			sLocalId = sDir.replace(sInRoot, '')
 			if sLocalId[0] == '/':
 				sLocalId = sLocalId[1:]
 
 			# Add the root name of the DSDF into the ID
 			sLocalId = sLocalId + "/" + sItem.replace(".dsdf","")
 
-			sLocalId = makeSrcSet(fLog, dConf, sCatRoot, sSubPath, bSocket, sLocalId)
+			sLocalId = makeSrcSet(fLog, dConf, sCatRoot, None, sSubPath, bSocket, sLocalId)
 			if sLocalId == None:
 				return None
 			lLocalSrcIds.append(sLocalId)
@@ -316,24 +320,24 @@ def makeSubSets(fLog, dConf, sCatRoot, sLocalRoot, sDir, bSocket):
 
 # ########################################################################## #
 
-def writeCatTitles(fLog, dConf, sCatRoot, sLocalRoot, sDir):
+def writeCatTitles(fLog, dConf, sCatRoot, sInRoot, sDir):
 	"""
 	Loop through directory entries adding descriptions to catalogs at
 	each level
 	"""
 	lLocalIds = []
 
-	#fLog.write("writeCatTitles for dir: %s and local root: %s"%(sDir, sLocalRoot))
+	#fLog.write("writeCatTitles for dir: %s and local root: %s"%(sDir, sInRoot))
 
 	for sItem in os.listdir(sDir):
 		sSubItem = pjoin(sDir, sItem)
 		if os.path.isdir(sSubItem):
-			writeCatTitles(fLog, dConf, sCatRoot, sLocalRoot, sSubItem)
+			writeCatTitles(fLog, dConf, sCatRoot, sInRoot, sSubItem)
 		else:
 			#fLog.write("%s is not a directory"%sItem)
 			if sItem != '_dirinfo_.dsdf': continue
 
-			sLocalId = dname(sSubItem).replace(sLocalRoot, '')
+			sLocalId = dname(sSubItem).replace(sInRoot, '')
 			if not sLocalId:
 				fLog.write("Can't import _dirinfo_.dsdf files from the local root.")
 				return None
@@ -341,7 +345,7 @@ def writeCatTitles(fLog, dConf, sCatRoot, sLocalRoot, sDir):
 			if sLocalId[0] == '/':
 				sLocalId = sLocalId[1:]
 
-			sLocalId = writeACatTitle(fLog, dConf, sCatRoot, sLocalRoot, sSubItem, sLocalId)
+			sLocalId = writeACatTitle(fLog, dConf, sCatRoot, sInRoot, sSubItem, sLocalId)
 			if sLocalId == None:
 				return None
 
@@ -351,7 +355,7 @@ def writeCatTitles(fLog, dConf, sCatRoot, sLocalRoot, sDir):
 
 # ########################################################################## #
 
-def writeACatTitle(fLog, dConf, sCatRoot, sLocalRoot, sPath, sLocalId):
+def writeACatTitle(fLog, dConf, sCatRoot, sInRoot, sPath, sLocalId):
 
 	#fLog.write("writeACatTitle for : %s at %s"%(sPath, sLocalId))
 
@@ -359,12 +363,12 @@ def writeACatTitle(fLog, dConf, sCatRoot, sLocalRoot, sPath, sLocalId):
 	if not sLocalId:
 
 		# Check to see if we are getting local IDs from filesystem paths
-		if sLocalRoot:
+		if sInRoot:
 			sDir = dname(sPath)
-			n = sDir.find(sLocalRoot)
+			n = sDir.find(sInRoot)
 			if n < 0:
 				perr("Local Root %s does not appear in source path %s"%(
-					sLocalRoot, sPath
+					sInRoot, sPath
 				))
 			sLocalId = sDir[n+1:].replace(os.sep, '/')
 			#fLog.write("Local ID 1: %s"%sLocalId)
@@ -609,7 +613,7 @@ def main():
 	psr.add_option('-c', '--config', dest="sConfig", default=sDef)
 	psr.add_option('-o', '--out-dir', dest="sOutRoot", default='.')
 	psr.add_option('-l','--local-id', dest="sLocalId", default=None)
-	psr.add_option('-d','--dir-to-id', dest="sLocalRoot", default=None)
+	psr.add_option('-d','--dir-to-id', dest="sInRoot", default=None)
 	#psr.add_option(
 	#	'-W', '--no-web-sock', action="store_false", dest='bSocSrc', default=True
 	#)
@@ -622,16 +626,16 @@ def main():
 	opts.bIncOnly = False
 
 	if len(lInPaths) < 1:
-		if opts.sLocalRoot and (len(opts.sLocalRoot) > 0):
+		if opts.sInRoot and (len(opts.sInRoot) > 0):
 			if opts.sLocalId:
 				perr("ERROR: Argument '-l' can not be used with directory processing");
 				return 13
-			if not os.path.isdir(opts.sLocalRoot):
-				perr("ERROR: DSDF root directory '%d' is not a directory."%opts.sLocalRoot)
+			if not os.path.isdir(opts.sInRoot):
+				perr("ERROR: DSDF root directory '%d' is not a directory."%opts.sInRoot)
 				return 13
 
-			perr("INFO: Reading all dsdf files under %s"%opts.sLocalRoot)
-			lInPaths = [opts.sLocalRoot]
+			perr("INFO: Reading all dsdf files under %s"%opts.sInRoot)
+			lInPaths = [opts.sInRoot]
 		else:
 			perr("ERROR: No inputs specified")
 			return 13
@@ -671,13 +675,13 @@ def main():
 	lLocalSrcIds = []
 	for sItem in lInPaths:
 		if os.path.isdir(sItem):
-			lMore = makeSubSets(fLog, dConf, sCatRoot, opts.sLocalRoot, sItem, opts.bSocSrc)
+			lMore = makeSubSets(fLog, dConf, sCatRoot, opts.sInRoot, sItem, opts.bSocSrc)
 			if lMore == None:
 				return 13
 			lLocalSrcIds += lMore
 		else:
 			sLocalId = makeSrcSet(
-				fLog, dConf, sCatRoot, opts.sLocalRoot, sItem, opts.bSocSrc, opts.sLocalId
+				fLog, dConf, sCatRoot, opts.sInRoot, sItem, opts.bSocSrc, opts.sLocalId
 			)
 			if sLocalId == None:
 				return 13
@@ -687,13 +691,13 @@ def main():
 	# Pass 2: Write the _dirinfo_.dsdf we find to catalogs, making them if needed
 	for sItem in lInPaths:
 		if os.path.isdir(sItem):
-			lMore = writeCatTitles(fLog, dConf, sCatRoot, opts.sLocalRoot, sItem)
+			lMore = writeCatTitles(fLog, dConf, sCatRoot, opts.sInRoot, sItem)
 			if lMore == None:
 				return 13
 			_maybeAddDirId(lLocalSrcIds, lMore)
 		else:
-			if bname(sPath) != '_dirinfo_.dsdf': continue	
-			sLocalId = writeACatTitle(fLog, dConf, sCatRoot, opts.sLocalRoot, sItem, opts.sLocalId)
+			if bname(sItem) != '_dirinfo_.dsdf': continue	
+			sLocalId = writeACatTitle(fLog, dConf, sCatRoot, opts.sInRoot, sItem, opts.sLocalId)
 			if sLocalId == None:
 				return 13
 			_maybeAddDirId(lLocalSrcIds, sLocalId)

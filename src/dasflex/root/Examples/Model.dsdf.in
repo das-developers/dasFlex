@@ -21,18 +21,21 @@
 ; to it's standard output.  Multiple manipulations may be chained together,
 ; but they all start with a your data reader programs, not data files.
 ;
-; This definition is for a reader which provides 200 random points in a given
-; interval between -10 and +10.
+; This definition is for a reader which produces data from a model at 
+; a resolution defined by the caller.  It produces a sine wave with a 
+; one day period sampled at the interval given.
 
 ; Required Items
-description = 'Produce random values between -10 and +10'
-reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/Random/reader.py'
+description = 'Produce data from a model'
+reader = 'env PYTHONPATH=%(PY_PATH)s %(PY_INTERPRETER)s %(INST_DIR)s/Model/reader.py'
 reducer = not_reducible
+requiresInterval = 1
 das2Stream = 1
 techContact = 'Your Name <your.name@yourplace.edu>'
-exampleRange_00 = '2017-01-01 to 2017-03-01 UTC'
+exampleRange_00 = '2026-02-01 to 2026-03-01 UTC'
+exampleInterval_00 = 4320
 
 ; Optional Items
-localId = 'Examples/Random'
+localId = 'Examples/Model'
 
 

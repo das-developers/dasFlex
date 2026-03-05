@@ -1888,6 +1888,7 @@ def _urlToCatPath(U, dConf, fLog, sUrl):
 	"""Convert a URL back to a local catalog object path, or return None
 	"""
 	sScriptUrl = U.webio.getScriptUrl(dConf)
+	#fLog.write("sScriptUrl=%s"%sScriptUrl)
 	if not sUrl.startswith(sScriptUrl):
 		return None
 
@@ -1953,7 +1954,9 @@ def handleReq(U, sReqType, dConf, fLog, form, sPathInfo):
 			if ('type' in dNode['catalog'][sSource]) and \
 				(dNode['catalog'][sSource]['type'] == 'HttpStreamSrc'):
 				sSrcUrl = dNode['catalog'][sSource]['urls'][0]
+				#fLog.write("sSrcUrl=%s"%sSrcUrl)
 				sSrcPath = _urlToCatPath(U, dConf, fLog, sSrcUrl)
+				#fLog.write("sSrcPath=%s"%sSrcPath)
 				break
 		if not sSrcPath:
 			return U.webio.notFoundError(

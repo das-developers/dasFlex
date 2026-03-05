@@ -2,7 +2,8 @@
 things
 """
 
-import sys # <-- for debugging, remove before commit
+import sys   # <-- for debugging, remove before commit
+import json  # <-- for debugging, remove before commit
 
 from os.path import dirname as dname
 from os.path import basename as bname
@@ -970,6 +971,9 @@ def makeGetSrc(fLog, dConf, sPath, sLocalId = None, lFilters = []):
 			'required':False, 'type':'real', 'units':'s',
 			'label':'Resolution'
 		}
+
+	#print(json.dumps(dOut, indent=1))
+	#sys.exit(117)
 
 	# Convert any read params to a read.options parameter
 	_mergeDas2Params(dOut, dDsdf, fLog)

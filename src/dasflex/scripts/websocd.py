@@ -32,8 +32,6 @@ from urllib.parse import urlparse
 from functools import partial as delegate
 import contextvars
 
-g_sConfPath = REPLACED_ON_BUILD
-
 # ########################################################################## #
 
 g_dConfCache = {} # A cache of json configs, the key is the filesystem path
@@ -75,9 +73,11 @@ def loadConf(sConfPath = None):
 		request.
 	"""
 
-	global g_dConfCache
-
-	if not sConfPath: sConfPath = g_sConfPath
+	if not sConfPath:
+		if not os.environ('DASFLEX_CONFIG'):
+			raise EnvironmentError("Config path not provided and DASFLEX_CONFIG is not set.")
+		else:
+			sConfPath = os.environ('DASFLEX_CONFIG')
 
 	if not os.path.isfile(sConfPath):
 		if os.path.isfile(sConfPath + ".example"):
@@ -106,7 +106,7 @@ def loadConf(sConfPath = None):
 		
 		iEquals = sLine.find('=')
 		if iEquals < 1 or iEquals > len(sLine) - 2:
-			raise ValueError(ServerError, "Error in %s line %d"%(g_sConfPath, nLine))
+			raise ValueError(ServerError, "Error in %s line %d"%(sConfPath, nLine))
 			fIn.close()
 			return None
 		
@@ -608,8 +608,9 @@ as data discovery are handled by the main server.
 		"'warning','info','debug' in order of increasing verbosity"
 	)
 	psr.add_argument(
-		'-c', '--config', metavar="FILE", dest="sConfFile", default=g_sConfPath,
-		help="Use a custom configuration file instead of %s ."%g_sConfPath
+		'-c', '--config', metavar="FILE", dest="sConfFile", default=None,
+		help="Provide the config file location here instead of in the "+\
+		   "DASFLEX_CONFIG environment variable."
 	)
 	psr.add_argument(
 		'-s', '--ssl', action='store_true', help='Comminicate over SSL.  This option'+\

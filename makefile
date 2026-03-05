@@ -84,6 +84,8 @@ root/Examples/Params/themis_data/CAA_EST_UG_STA_v36.pdf \
 root/Examples/Params/themis_data/tha_l3_sm_20080629_171151_20080629_171152_burst_v01.cdf \
 root/Examples/Random/reader.py \
 root/Examples/Random.dsdf.in \
+root/Examples/Model.dsdf.in \
+root/Examples/Model/reader.py \
 root/Examples/Spectra/reader.sh.in \
 root/Examples/Spectra.dsdf.in \
 root/Examples/Waveform/reader.py \
@@ -106,7 +108,7 @@ SCRIPT_MOD:=$(patsubst %,dasflex.scripts.%,$(SCRIPTS))
 
 # ########################################################################### #
 
-.PHONY: build test install distclean clean
+.PHONY: build test test_srv test_dsdf install distclean clean
 
 # We have no C-code here, easy to guess the wheelfile name (until some new
 # fad takes over)
@@ -121,26 +123,56 @@ build_venv/bin/python:
 
 # Make sure top level scripts can at least run well enough to print their help
 # text, then run unittests.  Only auth.py has unittests so far. 
-test:dist/$(WHEEL_FILE)
-	$(PY_BIN) -m $(VENV_MOD) test_venv
-	./test_venv/bin/python -m pip install $(PIP_ARGS) $(DAS_WHEEL_PATH)
-	./test_venv/bin/python -m pip install $(PIP_ARGS) dist/$(WHEEL_FILE)
-	@for MOD in $(SCRIPT_MOD) ; do ./test_venv/bin/python -m $$MOD -h ; done
-	./test_venv/bin/python -m unittest dasflex.webutil.auth
+test_srv:dist/$(WHEEL_FILE)
 	mkdir -p $(PWD)/test_srv
-	./test_venv/bin/dasflex_mkroot $(PWD)/test_srv BUILD_HOST
-	./test_venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test
-	./test_venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test_srv/dsdf
-	./test_venv/bin/dasflex_cupdate $(PWD)/test_srv/etc/dasflex.conf
-	# Add section to start mini-server here, and then pull data with 
-	# a python script, thus providing an end-to-end test
+	$(PY_BIN) -m $(VENV_MOD) test_srv/venv
+	./test_srv/venv/bin/python -m pip install $(PIP_ARGS) $(DAS_WHEEL_PATH)
+	./test_srv/venv/bin/python -m pip install $(PIP_ARGS) dist/$(WHEEL_FILE)
+	@for MOD in $(SCRIPT_MOD) ; do ./test_srv/venv/bin/python -m $$MOD -h ; done
+	./test_srv/venv/bin/python -m unittest dasflex.webutil.auth
+	./test_srv/venv/bin/dasflex_mkroot $(PWD)/test_srv BUILD_HOST
+
+# Test importing DSDF files
+test_dsdf:
+	./test_srv/venv/bin/dasflex_cadd -o tmp -c test_srv/etc/dasflex.conf -d test test/Juno/Ephemeris/Jovicentric.dsdf
+	./test_srv/venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test
+	./test_srv/venv/bin/dasflex_cadd -I -c test_srv/etc/dasflex.conf -d test_srv/dsdf
+	./test_srv/venv/bin/dasflex_cupdate $(PWD)/test_srv/etc/dasflex.conf
+
+# Test legacy queries
+test_das2:
+	./test/cgi_main.sh >/dev/null
+	./test/cgi_main.sh "" "server=list"
+
+# Test new flexible queries
+test_forms:
+	./test/cgi_main.sh "/source/juno.html" > /dev/null
+	./test/cgi_main.sh "/source/juno/wav/survey.html" > /dev/null
+	./test/cgi_main.sh "/source/juno/ephemeris/jovicentric.html" > /dev/null
+	./test/cgi_main.sh "/source/examples/random.html" > /dev/null
+	mkdir -p test_data
+
+test_data: test_random test_model
+
+test_random:
+	./test/cgi_main.sh "/source/examples/random/flex" "read.time.min=2025-01-01" "read.time.max=2025-02-01" > test_data/random.res
+	sed '1,/^\r\{0,1\}$$/d' test_data/random.res > test_data/random.d2t
+	./test_srv/venv/bin/das_verify test_data/random.d2t
+
+test_model:
+	./test/cgi_main.sh "/source/examples/model/flex" "read.time.inter=1800" "read.time.min=2026-03-01" "read.time.max=2026-03-04" > test_data/model.res
+	sed '1,/^\r\{0,1\}$$/d' test_data/model.res > test_data/model.d2t
+	./test_srv/venv/bin/das_verify test_data/model.d2t	
+
+test:test_srv test_dsdf test_das2 test_forms test_data
+
 
 install:
 	@$(PY_BIN) -m pip uninstall -y ./dist/$(WHEEL_FILE)
 	$(PY_BIN) -m pip install --pre ./dist/$(WHEEL_FILE)
 
 distclean:
-	-rm -r dist test_venv test_srv build_venv
+	-rm -r dist build_venv dist test_srv test_data
 
 clean:
-	-rm -r test_venv test_srv build_venv
+	-rm -r build_venv test_srv test_data

@@ -34,9 +34,6 @@ CONTACT_EMAIL = "update&#45;dasflex&#46;conf&#64;nowhere&#45;ed&#117;"
 # A contact page for the person responsible for the server
 CONTACT_URL  = "https://update-dasflex.conf.nowhere.edu/~someone/"
 
-# The top location of data source include files
-DATASRC_INC  = "%(ROOT_DIR)s/include"
-
 # If using simple local authentication, the name of the group and users files
 PASSWD_FILE = "%(ETC_DIR)s/passwd"
 GROUP_FILE  = "%(ETC_DIR)s/group"

@@ -10,4 +10,6 @@ dist_venv
 build_venv
 test_venv
 test_srv
+test_data
+tmp
 

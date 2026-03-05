@@ -14,6 +14,8 @@ include src/dasflex/root/Examples/Params/themis_data/CAA_EST_UG_STA_v36.pdf
 include src/dasflex/root/Examples/Params/themis_data/tha_l3_sm_20080629_171151_20080629_171152_burst_v01.cdf
 include src/dasflex/root/Examples/Random/reader.py
 include src/dasflex/root/Examples/Random.dsdf.in
+include src/dasflex/root/Examples/Model/reader.py
+include src/dasflex/root/Examples/Model.dsdf.in
 include src/dasflex/root/Examples/Spectra/reader.sh.in
 include src/dasflex/root/Examples/Spectra.dsdf.in
 include src/dasflex/root/Examples/Waveform/reader.py
