@@ -81,7 +81,7 @@ def _rawReadDsdf(fIn, fLog):
 			if i < (len(lLines) - 1):
 				i += 1
 				sNext = lLines[i].strip()
-				if sNext[0] == "'":
+				if len(sNext) and (sNext[0] == "'"):
 					sNext = sNext[1:]
 
 				sLine += sNext
@@ -505,11 +505,151 @@ def _hasParam(dParams, sName):
 
 	return False
 
+class DsdfParam(object):
+	"""
+	Hold information for a single DSDF "param_XX" value
+
+	New for v0.6 (2026-03-06): Assume options follow the 
+	   "Structured Sub-values for Params"
+	   entry on the Wiki at:
+	   https://github.com/das-developers/das2docs/wiki/Structured-Sub%E2%80%90values-for-Params
+	
+	According to that document there are up 4 section in a parameter listing, ex:
+
+	   param_00 = 'name0 | label0 | output0 | constraint0'
+	   param_11 = 'name0 | label0 | output0 | constraint0'
+
+	with the ancillary item:
+
+		paramSep="sepchar"
+
+	which is only used if whitespace isn't the separator. Param section 
+	requirements:
+
+	name
+	----
+	Required, has a formation rule of a-Z A-Z 0-1 [._-+:]
+
+	label (optional)
+	----------------
+	String to display to the user, use name if not present
+
+	output (optional)
+	-----------------
+	@ character represents a human entered value, all other characters
+	transmitted as is.  If not present, send the name value.
+
+	constraint (option)  ->  constraint_type : constraint values
+	-------------------
+	The most complicated. If not present, anything can be submitted by the user.
+	Otherwise the types are:
+
+      `option:` Send 1 of the constrain values
+	   `set:` Send 1-N of the constraint values
+      `range:` Send value between given min and max (integer, float, time autodetect)
+	"""
+
+	def __init__(self, sPath, sKey, sValue, sInfo=None):
+		"""
+		sKey ex: 'param_XX'
+		         'name   | label                      | output | constraint'
+		sVal ex: 'sensor | Output WBR data for sensor | @      | set: , Bx By Bz Ex Eu Ev Ew'
+		"""
+		lParam = [s.strip() for s in sValue.split('|') ]
+		if len(lParam) == 0:
+			raise ValueError("%s: Key %s has no value"%(sPath, sName))
+
+		self.sName = lParam[0].lower()
+		self.sLabel = lParam[0]
+		self.sNotes = sInfo
+		self.sTitle = self.sLabel if len(lParam) < 2 else lParam[1]
+		self.sValue = self.sName  # By default, assume it's a flag till proven otherwise
+		self.sPrefix = None       # By default, no prefix
+		self.sConstraint = None
+		self.sType = 'string'     # Basic type, not enums of flagsets
+		self.lConsItems = []
+		#self.sSetSep = ' '
+		
+		if len(lParam) > 2:
+			s = lParam[2]
+			n = s.find("@")
+			if n < 0:
+				self.sType = 'boolean'   # no user string entered, so just a toggle
+				self.sValue = lParam[0]
+			elif n == 0:
+				self.sValue = None   # User supplies the value
+			else:  #n > 0
+				self.sPrefix = s[:n] # Supply a prefix when transmitting the value
+				self.sValue = None   # and user supplies the value
+		else:
+			self.sType = 'boolean'
+
+		if len(lParam) > 3:        # We have a constrain.  See what kind it is
+			lConstraint = [s.strip() for s in lParam[3].split(':')]
+			self.sConstraint = lConstraint[0].lower()
+
+			if len(lConstraint) != 2:
+				raise ValueError("%s: Key %s can't find : separated contraint list in %s"%(
+					sPath, sKey, lParam[3]
+				))
+			self.lConsItems = [s.strip() for s in "".join(lConstraint[1]) ]
+			for s in lConsItems:
+				if len(s) == 0:
+					raise ValueError("Empty constraint value")
+
+			if self.sConstraint  == 'option':
+				self.sType = 'string'
+
+			elif self.sConstraint == 'range':
+				if len(self.lConstItems) != 2:
+					raise ValueError("%s: Key %s expected 2 items for the range in %s"%(
+						sPath, sKey, " ".join(self.lConstItems)
+					))
+				if self.lConstItems[0] >= self.lConstItems[1]:
+					raise ValueError("%s: Key %s min value is greater than or equal to the max value in %s"%(
+						sPath, sKey, " ".join(self.lConstItems)
+					))
+				# type detection
+				try:
+					b,e = int(self.lConstItems[0], 10), int(self.lConstItems[0], 10)
+					self.sType = 'integer'
+				except ValueError:
+					try:
+						b,e = float(self.lConstItems[0]), float(self.lConstItems[0])
+						self.sType = 'real'
+					except ValueError:
+						try:
+							b,e = das2.DasTime(self.lConstItems[0]), das2.DasTime(self.lConstItems[0])
+							self.sType = 'isotime'
+						except ValueError:
+							self.sType = 'string'
+
+			elif self.sConstraint == 'set':
+				raise ValueError("%s: Key %s, multi select options not supported for %s"%(
+					sPath, sKey, lParam[3]
+				))
+				#self.sSetSep = self.lConsItems[0]
+				#self.lConsItems = self.lConstItems[1:]
+				#self.sType = 'string'
+
+			else:
+				raise ValueError("%s: Key %s unknown constraint type %s"(
+					sPath, sKey, self.sContraint
+				))
+
+
+
 def _mergeDas2Params(dOut, dProps, fLog):
 	"""Merge in params.  This is a das2 thing.  Any option that is needs
 	to be handled by the reader and is not a time parameter is crammed into
 	params, seriously overloading that one setting.  
+
+	How these are converted to http_param entries.
+
+	1. If everything can be represented as 
 	
+
+
 	Arguments
 	  dOut - A dictionary representing the entire JSON output document
 	  dProps - The parsed DSDF properties as output by parseDas22SrcProps
@@ -531,138 +671,167 @@ def _mergeDas2Params(dOut, dProps, fLog):
 	"""
 
 	(
-		sBegKey, sEndKey, sResKey, sIntKey, sOptKey, sFmtKey, sVerKey, sKeyComp
+		BEG_KEY, END_KEY, RES_KEY, INTR_KEY, OPT_KEY, FMT_KEY, VER_KEY, COMP_KEY
 	) = g_tKeyConvention
+
+	sPath = dProps['__path__']
+
+	lParams = []                           # Parse all the 'param_XX' statements
+	if 'param' in dProps:
+		lNums = list(dProps['param'])
+		lNums.sort()
+		for sNum in lNums:
+			sInfo = None
+			if ('paramInfo' in dProps) and (sNum in dProps['paramInfo']):
+				sInfo = dProps['paramInfo']['00']
+
+			#sys.stderr.write(
+			#	"path=%s, param=%s, props=%s, info=%s\n"%(
+			#		sPath, "param_%s"%sNum, dProps['param'][sNum], sInfo
+			#))
+
+			p = DsdfParam(sPath, "param_%s"%sNum, dProps['param'][sNum], sInfo)
+			if p.sName != 'ascii':
+				lParams.append(p)
+		
+	sParamSep = ' '
+	if ('paramSep' in dProps) and ('00' in dProps['paramSep']):
+		sParamSep = dProps['paramSep']['00']
+
+	if len(lParams) == 0:                  # Some readers have no options at all
+		return 
+	
+	# Make the lone HTTP GET parameter, this may be complex because das2
+	# overloaded 'params=' with very complex arguments
+	bUseFlags = (len(lParams) > 0)
 
 	dProto = _getDict(dOut, 'protocol')
 	dGet = dProto['httpParams']
 	
-	# If we have more then one param statement, make a flagset
-	bAnyParams = False
-	bFlagSet = False
-	if 'param' in dProps:
-		nParams = len(dProps['param'])
-		if _hasParam(dProps['param'], 'ascii'):
-			nParams -= 1
+	if not bUseFlags:               # Single normal option, no enum flags!
+		p = lParams[0]
+		dGet[OPT_KEY] = { 'required':False, 'type': p.sType }
 
-		bAnyParams = (nParams > 0);
-		if nParams > 1:
-			bFlagSet = True
-		
-	# Some readers have no options at all
-	if not bAnyParams: return
-	
-	lNums = list(dProps['param'])
-	lNums.sort()
+		if p.sValue:  dGet[OPT_KEY]['value']  = p.sValue
+		if p.sPrefix: dGet[OPT_KEY]['prefix'] = p.sPrefix
 
-	# Save off a list of default values, if present
-	dDefs = {}
-	sDef = None
-	
-	if bFlagSet:
+		if p.sConstraint == 'range': 
+			dGet[OPT_KEY]['range'] = p.lConstItems
+		elif p.sConstraint == 'option':
+			dGet[OPT_KEY]['enum'] = p.lConstItems
+			dGet[OPT_KEY]['type'] = 'enum'
+		else:
+			raise ValueError("Unknown constraint type %s"%p.sConstraint)
+
+	else:  # Gotta cram 'em into a flagset, the bane of the das2 API
+
+		# The simpilest flagsets just have a name and 'string' data type
+		# and pass through all values from the interface
+
 		dFlags = {}
-		dGet[sOptKey] = {
-			'type':'FlagSet',
-			'required':False,
-			'title': 'Optional reader arguments',
-			'flagSep': ' ',
-			'flags': dFlags
+		dGet[OPT_KEY] = { 
+			'required':False, 'type':'FlagSet', 'flagSep': sParamSep, 'flags': dFlags
 		}
 		
-		for sNum in lNums:
-			lParam = [s.strip() for s in dProps['param'][sNum].split('|') ]
-			sFlag = lParam[0].lower()
+		# All sub flag values and enums get piled into a generic flag set.
+		# range values are lost and enums aren't checked at this level
+		# ... hope they are distinct!
+		for p in lParams:
+			dFlag = {}
+			dFlag['type'] = p.sType  # Basic type
+			if p.sValue:  dFlag['value']  = p.sValue
+			if p.sPrefix: dFlag['prefix'] = p.sPrefix
 
-			if sFlag == 'ascii': continue   # dasFlex has standard text conversions
+			# Not allowing in sets for now...
+			#if p.sSetSep:
+			#	if p.sSetSep == sFlagSep:
+			#		raise ValueError(
+			#			"%s: A param subset separator is the same as the paramsSep='%s' value"%(
+			#			dProps['__path__'], sParamSep
+			#		))
+			#	dFlag['subSep'] = p.sSetSep
+			
+			dFlags[p.sName] = dFlag
+			
+	# Now make all the interface options. This is simpler then above as there is 
+	# one interface option for each param_XX line.
 
-			dFlags[sFlag] = {}
+	# Some limitations of building interfaces from dsdf files:
+	# 1. There is no default value provided, make assumptions
+	# 2. No enum string translation, enum values in the interface must protocol layer
 
-			if len(lParam) > 1:
-				dFlags[sFlag]['title'] = lParam[1]
-
-			if len(lParam) > 2:
-				sType = lParam[2]
-				if sType == 'int': sType = 'integer'
-				dFlags[sFlag]['type'] = sType
-			else:
-				dFlags[sFlag]['value'] = lParam[0]
-
-			if len(lParam) > 3:
-				dDefs[sFlag] = lParam[3]
-	
-	else:
-		# For readers that don't have FLAGSET make a description that preserves
-		# new lines
-		for sNum in lNums:
-			lParam = [s.strip() for s in dProps['param'][sNum].split('|') ]
-			if lParam[0].lower() != 'ascii':  # dasFlex has std text conventions
-				break
-
-		sLabel = lParam[0].lower()
-
-		dGet[sOptKey] = {
-			'type':'string',
-			'required':False, 
-			'title':'Optional reader arguments',
-			'label':sLabel
-		}
-		if len(lParam) > 1:
-			dGet[sOptKey]['title'] = lParam[1]
-		if len(lParam) > 2:
-			sType = lParam[2]
-			if sType == 'int': sType = 'integer'
-			dGet[sOptKey]['type'] = sType
-
-		if len(lParam) > 3:
-			sDef = lParam[3]
-	
-	
 	dIface = _getDict(dOut, 'interface')
 	dOpts = _getDict(dIface, 'options')
 	dOpts['label'] = 'Options'
 	dOpts['title'] = 'Optional properties for this data source'
 	dOptProps = _getDict(dOpts, 'props')
 	
-	# If the params element is handled as a string then just output a single
-	# text option.
-	
-	if dGet[sOptKey]['type'] == 'string':
-		dOpt = _getDict(dOptProps, 'extra')
-		dOpt['value'] = ''
+	for p in lParams:
+		# Das2 params always starts unset, and are never required
+		dOProp = {'label':p.sLabel, 'set':{'required':False, 'param':OPT_KEY} }
+		if p.sTitle: dOProp['title'] = p.sTitle
+		if p.sNotes: dOProp['notes'] = p.sNotes
+
+		if bUseFlags:
+			dOProp['set']['flag'] = p.sName
+
+		if p.sType == 'boolean':
+			dOProp['type']  = 'boolean'
+			dOProp['value'] = False
+			dOProp['set']['value'] = True
+		else:
+			dOProp['value'] = None
 		
-		if 'exampleParams' in dProps:
-			for sNum in lNums:
-				if sNum in dProps['exampleParams']:
-					dOpt['value'] = dProps['exampleParams'][sNum]
-				break # Only take the first one since that's what's used for the
-				      # example time.  We want the entire example to hang together
-				
-		dOpt['set'] = {'param':sOptKey}
-		dOpt['name'] = 'Extra Reader Parameters'
-		if 'description' in dGet[sOptKey]:
-			dOpt['description'] = dGet[sOptKey]['description']
+		if p.sConstraint == 'range': 
+			dOProp['range'] = p.lConstItems
+		elif p.sConstraint == 'option':
+			dOProp['enum'] = []
+			dOProp['type']  = 'enum'
+			for s in p.lConstItems:  
+				dOProp['enum'].append({"value":s})  # No pval here for das2
+		elif p.sConstraint != None:
+			raise ValueError("%s: Unknown constraint type %s"%(sPath, p.sConstraint))
+
+		dOptProps[p.sName] = dOProp
+
+	# Older code that attempted to set default values, maybe reuse?
+	#if not bFlagSet:
+	#	dOpt = _getDict(dOptProps, 'extra')
+	#	dOpt['value'] = ''
+	#	
+	#	if 'exampleParams' in dProps:
+	#		for sNum in lNums:
+	#			if sNum in dProps['exampleParams']:
+	#				dOpt['value'] = dProps['exampleParams'][sNum]
+	#			break # Only take the first one since that's what's used for the
+	#			      # example time.  We want the entire example to hang together
+	#			
+	#	dOpt['set'] = {'param':sOptKey}
+	#	dOpt['name'] = 'Extra Reader Parameters'
+	#	if 'description' in dGet[sOptKey]:
+	#		dOpt['description'] = dGet[sOptKey]['description']
 		
 	# If it's a flag_set, output one option per flag.  Be on the lookout
 	# for flags that have type 'integer' and 'real'  These should became
 	# text options not booleans
-	else:
-		for sFlag in dFlags:
-			dFlag = dFlags[sFlag]
-			sOptName = sFlag.strip('-').strip().lower()
-			dOpt = _getDict(dOptProps, sOptName)
-			dOpt['title'] = dFlag['title']
-			dFlag.pop('title')
+	#else:
+	#	for sFlag in dFlags:
+	#		dFlag = dFlags[sFlag]
+	#		sOptName = sFlag.strip('-').strip().lower()
+	#		dOpt = _getDict(dOptProps, sOptName)
+	#		dOpt['title'] = dFlag['title']
+	#		dFlag.pop('title')
 			
-			if ('type' in dFlag) and (dFlag['type'] in ('real','integer')):
-				dOpt['type'] = dFlag['type']
-				dOpt['value'] = None
-				if sFlag in dDefs: dOpt['value'] = dDefs[sFlag]
-				dOpt['set'] = {'param':sOptKey, 'flag':sFlag}
+	#		if ('type' in dFlag) and (dFlag['type'] in ('real','integer')):
+	#			dOpt['type'] = dFlag['type']
+	#			dOpt['value'] = None
+	#			if sFlag in dDefs: dOpt['value'] = dDefs[sFlag]
+	#			dOpt['set'] = {'param':sOptKey, 'flag':sFlag}
 						
-			else:
-				dOpt['type'] = 'boolean'
-				dOpt['value'] = False
-				dOpt['set'] = {'value':True, 'param':sOptKey, 'flag':sFlag}
+	#		else:
+	#			dOpt['type'] = 'boolean'
+	#			dOpt['value'] = False
+	#			dOpt['set'] = {'value':True, 'param':sOptKey, 'flag':sFlag}
 				
 	# If we want to do this as an enum this it would look like:
 	#
@@ -731,12 +900,9 @@ def _mergeExamples(dOut, dProps, sBaseUrl, fLog):
 		bKeep = True
 		dQuery = {}
 		dExample = {"settings":dQuery}
-		dExample['label'] = "Example %s"%sNum
 			
 		lTmp = [s.strip() for s in dProps['exampleRange'][sNum].split('|')]
-		if len(lTmp) > 1:
-			dExample['label'] = lTmp[1]
-			
+
 		lTmp = [s.strip() for s in lTmp[0].split('to')]
 		
 		if len(lTmp) < 2: continue  # Invalid range string
@@ -754,6 +920,17 @@ def _mergeExamples(dOut, dProps, sBaseUrl, fLog):
 			dtBeg = das2.DasTime(sBeg)
 			dtEnd = das2.DasTime(sEnd)
 			dQuery["coords/time/props/res"] = (dtEnd - dtBeg) / 2000.0
+
+		if len(lTmp) > 1:
+			dExample['label'] = lTmp[1]
+		else:
+			if sNum in lInterval:
+				dExample['label'] = "Example %s - %s to %s @ %s s"%(
+					sNum,sBeg,sEnd,dProps['exampleInterval'][sNum]
+				)
+			else:
+				dExample['label'] = "Example %s - %s to %s"%(sNum,sBeg,sEnd)
+
 		
 		# By default flags are coverted to individual options by value.  This
 		# means there is a translation from:

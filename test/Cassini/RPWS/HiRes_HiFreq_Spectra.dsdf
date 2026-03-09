@@ -1,0 +1,38 @@
+description     = 'Frequency translated spectra from the WBR via the HFR (PDS level 3 files)'
+
+info            = 'Provides either calibrated, or uncalibrated, waveforms dwelling on one ' +$
+                  'sensor for multiple collection periods.  The HFR (High Frequency Reciever) '+$
+						'mixes the incoming signal with the output of a local oscillator and passes '+$
+						'the mixed waveforms through a low-pass filter.  The resulting downmixed ' +$
+						'signal is sampled within the WBR (Wideband Reciever) at 4.5 microsecond ' +$
+						'intervals.  In this way the frequency range analyzed is selectable from ' +$
+						'125 kHz to 16 MHz'
+
+reader           = '/project/cassini/cfg/invoke.sh rpws_l3hfwbr_spec_rdr.sh'
+
+sourceCode       = 'https://research-git.uiowa.edu/space-physics/cassini/cas_rpws_prod/-/tree/main/l3rpws/highrate'
+
+das2Stream      = 1
+
+techContact     = 'Chris Piker <chris-piker@uiowa.edu>'
+sciContact      = 'George Hospodarsky <george-hospodarsky@uiowa.edu>'
+
+validRange      = '1997-01-03T03:15 to 2017-09-15T10:35'
+exampleRange_00 = '2008-223T17:22 to 2008-223T17:23:15'
+
+item_00         = 'Ex | Spectra from the Eu and Ev electric dipole antennas, aligned along the X axis of the spacecraft'
+
+;All data have been delivered to the public, passwords no longer required
+;readAccess      = 'GROUP:cassiniTeam'
+
+
+;cacheLevel_00  = 'intrinsic | daily '
+;cacheLevel_01  = '1 s | daily'
+;cacheLevel_02  = '6 s | daily'
+;cacheLevel_03  = '60 s | daily'   
+
+param_01       = 'DFT_LENGTH | Defaults to 1024, recommend keeping this below 2K to avoid data dropouts | @ '
+
+param_02       = 'SLIDE_DENOMINATOR | Defaults to 1, increase above 1 to get overlapping DFTs.  Must '+$
+                 'be an integer.  Is always taken as the 2nd value entered, so DFT_LENGTH must be '+$
+					  'provided in order to set the SLIDE_DENOMINATOR | @'

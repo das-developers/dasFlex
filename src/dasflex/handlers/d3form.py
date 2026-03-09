@@ -1475,9 +1475,10 @@ def prnHttpSource(U, fLog, dConf, dSrc, fOut):
 		# See if the any of the data items have settable parameters
 		lModVars = []
 		for sVar in dData:
-			for sProp in dData[sVar]['props']:
-				if 'set' in dData[sVar]['props'][sProp]:
-					if sVar not in lModVars: lModVars.append(sVar)
+			if 'props' in dData[sVar]:
+				for sProp in dData[sVar]['props']:
+					if 'set' in dData[sVar]['props'][sProp]:
+						if sVar not in lModVars: lModVars.append(sVar)
 					
 		if len(lModVars) > 0:
 			sout(fOut, '<fieldset><legend><b>Data Options:</b></legend>')

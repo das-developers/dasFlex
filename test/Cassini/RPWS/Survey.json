@@ -1,0 +1,355 @@
+// Cassini RPWS Survey Reader parameters and 
+{
+	// Define how to call the command and it's up converter
+	"internal":{
+		"commands":{
+			"das1_reader":{
+				"label":"Reader",
+				"title":"Full resolution Cassini Survey PDS3 Reader",
+				"output":{"type":"das", "version":"1.1"},
+				"order":1,
+				"activation":[ 
+					{"key":"read.time.min"},{"key":"format.type", "value":"das"},
+					{"key":"format.version","value":"1.1"}
+				],
+				// Okay... here we go
+				"template":[
+					"/project/cassini/cfg/invoke.sh rpws_lr_pdsrdr -s ",
+					
+          "-tStart #[read.time.min] -tStop #[read.time.min] ", 
+          
+          "#[read.clean#-n @#] #[read.notch#-n @ #] ",
+
+					"#[read.calc.mash#-c#] #[read.calc.no_bascap#-n bascap#] ",
+          "#[read.calc.hf2_corr#-a#]",
+          
+					"#[read.data.lfdr#-lfdr '@'#] #[read.data.mfdr#-mfdr '@'#] ",
+					"#[read.data.mfr#-mfr '@'#] #[read.data.hfr#-hfr '@'#] ",
+
+          "#[read.out.bg_div#-b @#] #[read.opt.no_ant#-n antlen#] "
+
+				]
+			},
+      "das1_to_das2":{
+        "label":"Converter",
+        "title":"Upconversion from Das1 Tagged to Das2 format",
+        "input": {"type":"das","version":"1.1"},
+        "output":{"type":"das","version":"2"},
+        "order":2,
+        "activation":[
+          
+        ],
+        "template":"das2_from_tagged_das1 -s -tBeg #[read.time.min]",
+        "set":[
+          {"key":"format.type",   "value":"das"},
+          {"key":"format.version","value":"2"},
+        ]
+      }
+		}
+	},
+
+	"flex":{
+
+    // Define how to communicate with it
+		"protocol":{
+			"httpParams":{
+        // Changes the coordinate range to read
+      	"read.time.min": {"required": true, "type": "isotime"},
+        "read.time.max": {"required": true, "type": "isotime"},
+      	
+        // Filters bad data packets
+        "read.clean":{
+          "type":"FlagSet",
+          "flagSep":" -n ",
+          "flags":{
+            "bad_data":{"value":"bad_data"},"hfr_snd": {"value":"hfr_snd"},
+            "lp_rswp": {"value":"lp_rswp"},"fake":    {"value":"fake"},
+            "dpf_zero":{"value":"prescale_0"}
+          }
+        },
+
+        // Notchs out bad frequencies
+        "read.notch":{
+          "type":"FlagSet",
+          "flagSep":" -n ",
+          "flags":{
+            "mfdr_mfr2":{"value":"mfdr_mfr2"},"mfr3_hfra":{"value":"mfr3_hfra"},
+            "hfra_mfr": {"value":"hfra_mfr"},"hfrc_hf1": {"value":"hfrc_hf1"},
+            "hf1_hfrc": {"value":"hf1_hfrc"},"hfrc_hf2": {"value":"hfrc_hf2"},
+            "hf2_hfrc": {"value":"hf2_hfrc"},"hf1_pwr":  {"value":"hf1_pwr"},
+            "hf2_pwr":  {"value":"hf2_pwr"}
+          }
+        },
+
+        // Changes internal calculations
+        "read.calc.mash":{"required":false, "type":"boolean"},
+        "read.calc.no_bascap": {"required":false, "type":"boolean"},
+        "read.calc.hf2_corr":{"required":false, "type":"boolean"},
+
+        // Selects data to output
+        "read.data.lfdr":{
+          "required":false, "type":"FlagSet", "flagSep":"",
+          "flags":{ "Ex":{"value":"Ex"}, "Ew":{"value":"Ew"}}
+        },
+        
+        "read.data.mfdr":{
+          "required":false, "type":"FlagSet", "flagSep":"",
+          "flags":{ "Ex":{"value":"Ex"}, "Ew":{"value":"Ew"}}
+        },
+
+        "read.data.mfr":{
+          "required":false, "type":"FlagSet", "flagSep":"",
+          "flags":{
+            "1":{"value":"1"},"2":{"value":"2"},"3":{"value":"3"},
+            "Ex":{"value":"Ex"},"Ew":{"value":"Ew"}
+          }
+        },
+
+        "read.data.hfr":{
+          "required":false, "type":"FlagSet", "flagSep":"",
+          "flags":{
+            "A":{"value":"A"},"B":{"value":"B"},"C":{"value":"C"},
+            "1":{"value":"1"},"2":{"value":"2"},"Eu":{"value":"3"},
+            "Ev":{"value":"Ev"},"Ex":{"value":"Ex"},"Ew":{"value":"Ew"}
+          }
+        },
+
+        // Changes the units either % or E
+        "read.out.bg_div":{
+          "required": false, "type": "real","range": [1.0, 50.0], "units": "percent"
+        },
+        "read.out.no_ant":{"required": false, "type":"boolean" }
+			}
+		},
+
+    // Defines how to present controls
+    "interface":{
+      "coords":{
+        "time":{
+          "label":"Time",
+          "props":{
+            "min":{
+              "label":"Minimum","title":"Minimum time value to stream",
+              "value":"2006-001","set":{"required":true, "param":"read.time.min"}
+            },
+            "max":{
+              "label":"Maximum","title":"Maximum time value to stream",
+              "value":"2006-002","set":{"required":true, "param":"read.time.max"}
+            },
+            "validRange":["1997-01-03T03:15","2017-09-15T10:35"]
+          }
+        }
+      },
+      "data":{
+        "specdens":{
+          "label":"Spec. Dens.",
+          "title":"Spectral Density in a variety of units",
+          "props":{
+            "enabled":{
+              "type":"boolean","xorGroup":"out_select","value":true
+            },
+            "units":{
+              "value":"V**2 m**-2 Hz**-1",
+              "set":{"value":"V**2 Hz**-1", "param":"read.out.no_ant"}
+            }
+          }
+        },
+        "db_above_back":{
+          "label":"dB Above Background",
+          "title":"Output dB above a selectable background level",
+          "props":{
+            "enabled":{
+              "type":"boolean","xorGroup":"out_select","value":false
+            },
+            "level":{
+              "label":"dB Above Background",
+              "title":"dB Above a selectable background",
+              "value":null,
+              "notes":"This algorithm determines the Nth percentile level and then caculates the dB of each point above that.", 
+              "type":"real", "set":{"param":"read.out.bg_div"}
+            }
+          }
+        },
+        "lfdr":{
+          "label":"LFDR", "title":"Low Frequency Digital Receiver",
+          "props":{
+            "ex":{
+              "label":"Ex", "title":"Output dipole measurements from Eu and Ev elements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.lfr","flag":"Ex"}}
+            },
+            "ew":{
+              "label":"Ew", "title":"Output Ew monopole antenna measurements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.lfr","flag":"Ex"}}
+            }
+          }
+        },
+        "mdfr":{
+          "label":"MFDR",  "title":"Medium Frequency Digital Receiver",
+          "props":{
+            "ex":{
+              "label":"Ex", "title":"Output dipole measurements from Eu and Ev elements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfdr","flag":"Ex"}}
+            },
+            "ew":{
+              "label":"Ew", "title":"Output Ew monopole antenna measurements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfdr","flag":"Ex"}}
+            }
+          }
+        },
+        "mfr":{
+          "label":"MFR", "title":"Medium Frequency Receiver",
+          "props":{
+            "ex":{
+              "label":"Ex", "title":"Output dipole measurements from Eu and Ev elements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfr","flag":"Ex"}}
+            },
+            "ew":{
+              "label":"Ew", "title":"Output Ew monopole antenna measurements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfr","flag":"Ex"}}
+            },
+            "band_1":{
+              "label":"Band-1", "title":"Output band 1, 24 - 180 Hz measurements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfr","flag":"1"}}
+            },
+            "band_2":{
+              "label":"Band-2", "title":"Output band 2, 180 Hz - 1.5 kHz measurements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfr","flag":"2"}}
+            },
+            "band_3":{
+              "label":"Band-3", "title":"Output band 3, 1.5 kHz - 12 kHz measurements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.mfr","flag":"2"}}
+            }
+          }
+        },
+        "hfr":{
+          "label":"HFR", "title":"High Frequency Receiver",
+          "props":{
+            "eu":{
+              "label":"Eu","title":"Output Eu monopole antenna",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.hfr","flag":"Eu"}}
+            },
+            "ev":{
+              "label":"Ev","title":"Output Ev monopole antenna",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.hfr","flag":"Ev"}}
+            },
+            "ex":{
+              "label":"Ex","title":"Output dipole measurements from Eu and Ev elements",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.hfr","flag":"Ex"}}
+            },
+            "ew":{
+              "label":"Ew","title":"Output Eu monopole antenna",
+              "enabled":{"type":"boolean","value":false,"set":{"value":true,"param":"read.data.hfr","flag":"Ew"}}              
+            },
+            "band_a":{
+              "label":"Band-A","title":"Output band A measurements 3.5–16 kHz",
+              "enabled":{"type":"boolean","value":false, "set":{"value":true,"param":"read.data.hfr","flag":"A"}}
+            },
+            "band_b":{
+              "label":"Band-A","title":"Output band A measurements 16–71 kHz",
+              "enabled":{"type":"boolean","value":false, "set":{"value":true,"param":"read.data.hfr","flag":"A"}}
+            },
+            "band_c":{
+              "label":"Band-A","title":"Output band A measurements 71–319 kHz",
+              "enabled":{"type":"boolean","value":false, "set":{"value":true,"param":"read.data.hfr","flag":"A"}}
+            },
+            "band_hf1":{
+              "label":"Band-HF1","title":"Output tunable band HF1 (125 kHz–4.125 MHz), reguardless of the mixing frequency",
+              "enabled":{"type":"boolean","value":false, "set":{"value":true,"param":"read.data.hfr","flag":"1"}}
+            },
+            "band_hf1":{
+              "label":"Band-HF1","title":"Output tunable band HF2 (125 kHz–16.125 MHz), reguardless of the mixing frequency",
+              "enabled":{"type":"boolean","value":false, "set":{"value":true,"param":"read.data.hfr","flag":"2"}}
+            },
+          }
+        }
+      },
+      "options":{
+        "label":"Options",
+        "title":"Optional properties for this data source",
+        "props":{
+          "notch_mfdr_mfr2":{
+            "title":"Remove MFDR frequencies outside the bandwidth of MFR band 2",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"mfdr_mfr2"}
+          },
+          "notch_mfr3_hfra":{
+            "title":"Remove MFR band 3 frequencies which conflict with HFR band A",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"mfr3_hfra"}
+          },
+          "notch_hfra_mfr":{
+            "title":"Remove HFR band A frequencies which conflict with MFR band 3.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hfra_mfr"}
+          },
+          "notch_hfrc_hf1":{
+            "title":"Remove the HFR band C frequencies which conflict with HFR band HF1.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hfrc_hf1"}
+          },
+          "notch_hf1_hfrc":{
+            "title":"Remove the HFR band HF1 frequencies which conflict with HFR band C.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hf1_hfrc"}
+          },
+          "notch_hfrc_hf2":{
+            "title":"Remove the HFR band C frequencies which conflict with HFR band HF2.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hfrc_hf2"}
+          },
+          "notch_hf2_hfrc":{
+            "title":"Remove the HFR band HF2 frequencies which conflict with HFR band C.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hf2_hfrc"}
+          },
+          "notch_hf1_pwr":{
+            "title":"Remove the HFR band HF1 frequencies that are power supply harmonics, 50Khz.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hf1_pwr"}
+          },
+          "notch_hf2_pwr":{
+            "title":"Remove the HFR band HF2 frequencies that are power supply harmonics, 50Khz.",
+            "value":false, "set":{"value":true, "param":"read.notch", "flag":"hf2_pwr"}
+          },
+          "calc_mash":{
+            "label":"Sensor Merge", 
+            "title":"Process all sensors as one big conglomeration. This option is incompatable with background division.",
+            "value":false, "set":{"value":true, "param":"read.calc.mash"}
+          },
+          "calc_no_bascap":{
+            "label":"Undo Cap Correction",
+            "title":"Remove the antenna base capacitance correction",
+            "value":false, "set":{"value":true, "param":"read.calc."},
+          },
+          "calc_hf2_corr":{
+            "label":"Correct Ant. Resonance",
+            "title":"Correct for the antenna resonance in hf2",
+            "value":true, "set":{"value":true, "param":"read.calc.no_bascap"},
+          },
+          "filter_bad_data":{
+            "title":"Remove corrupted data packets",
+            "value":true, "set":{"value":true, "param":"read.clean.bad_data"}
+          },
+          "filter_hfr_snd":{
+            "title":"Remove data captured during the HFR sounder",
+            "value":true, "set":{"value":true, "param":"read.clean.hfr_snd"}
+          },
+          "filter_lp_rswp":{
+            "title":"Remove data captured during the langmuir probe raw sweep",
+            "value":true, "set":{"value":true, "param":"read.clean.lp_rswp"}
+          },
+          "filter_fake":{
+            "title":"Remove data that was constructed on the ground",
+            "value":true, "set":{"value":true, "param":"read.clean.fake"}
+          },
+          "filter_dpf_zero":{
+            "title":"Remove LFDR/MFDR data which had a digital prescale of zero",
+            "value":true, "set":{"value":true, "param":"read.clean.dpf_zero"}
+          }
+        }
+      },
+      "formats":{
+        "das": {
+        "label": "das2 stream",  "title": "Streaming format for plots",
+        "mimeTypes": ["application/vnd.das2.das2stream",],
+        "props": {
+          "enabled": { "type": "boolean","value": true},
+          "version": {"label": "Stream Version", "value": "2"},
+          "serial": {"label": "Serialization","value": "binary"},
+        }
+      }
+    }
+	}
+} 
