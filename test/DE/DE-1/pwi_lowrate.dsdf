@@ -1,0 +1,13 @@
+reader	  = '/project/de/bin/rocky8/de_pwilr_rdr.ksh'
+sourceCode = 'https://research-git.uiowa.edu/space-physics/de/de_pwi_prod'
+reducer	  = 'not_reducable'
+das2Stream = 1
+server     = 'http://planet.physics.uiowa.edu/das/das2Server'
+exampleRange = '1982-301T11:00 to 1982-301T12:00'
+exampleParams = '-sfr -lfc -recv A'
+sciContact = 'Ann Persoon <ann-persoon@uiowa.edu>'
+techContact='Chris Piker <chris-piker@uiowa.edu>'
+
+param01 = 'sfr|Use this to gather E and B fields from 100 Hz to 400 kHz|-sfr'
+param02 = 'lfc|If specified, useth e Low Frequency Correlator (for what??)|-lfc'
+param03 = 'recv| Specify which Step Frequency Reciever's data to view | -recv @ | option: A B'

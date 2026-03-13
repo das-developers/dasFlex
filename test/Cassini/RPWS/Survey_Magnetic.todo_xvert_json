@@ -1,0 +1,89 @@
+description = 'Calibrated, full-resolution, low-rate magnetic survey data (PDS level 3 files)'
+
+
+reader	   = '/project/cassini/cfg/invoke.sh rpws_lr_das2rdr.sh'
+;Use default reducer
+
+das2Stream  = 1
+
+;All data have been delivered to the public, passwords no longer required
+;readAccess  = 'AGE:1y | GROUP:cassiniTeam'
+
+techContact     = 'Chris Piker <chris-piker@uiowa.edu>'
+sciContact      = 'Bill Kurth <william-kurth@uiowa.edu>'
+
+
+exampleRange_00  = '2016-001 to 2016-002'
+exampleParams_00 = '-lfdr BxByBz -mfdr BxByBz -mfr 13BxBz -n hfr_snd -n lp_rswp -n bad_data -n dpf_zero -n mfdr_mfr2 -a'
+testRange_00     = '2016-001 to 2016-002'
+exampleOpts_00   = 'nix_mfdr_mfr2=true'  ; No options needed if using the command translation feature (Das 2.3 only)
+
+validRange      = '1997-01-03T03:15 to 2017-09-15T10:35'
+
+; Implicit time coordinate added by default, specify y
+; Items are: name, variable in data, description, units
+coord_01 = 'frequency | X | Hz'
+
+; Data items.  For cassini survey there are too many to mention, just lump together
+; Elements are: name, Title, units, [enabled]
+data_01 = 'specdens | Magnetic Spectral Density | nT**2 Hz**-1'
+
+
+param_01      = 'bg_div  | Background division | OPTIONAL | REAL | | 1 to 50'
+paramTrans_01 = 'READER_ARG | -b %{VALUE}'
+paramInfo_01  = 'Background division using the Nth percentile as the background'
+
+param_02      = 'sensor_mash| Sensor Merge | OPTIONAL | BOOLEAN | false'
+paramTrans_02 = 'READER_ARG | true,false | -c,'
+paramInfo_02  = 'Process all sensors as one big conglomeration. This option is incompatable with background division.'
+
+param_03      = 'nix_mfdr_mfr2 | Keep MFDR | OPTIONAL | BOOLEAN | true'
+paramTrans_03 = 'READER_ARG | true,false | -n mfdr_mfr2,'
+paramInfo_03  = 'Remove MFDR frequencies outside the bandwidth of MFR band 2.'
+
+param_04      = 'nix_mfr3_hfra | Remove MFR | OPTIONAL | BOOLEAN | true'
+paramTrans_04 = 'READER_ARG | true,false | -n mfr3_hfra,'
+paramInfo_04  = 'Nix the MFR band 3 frequencies which conflict with HFR band A.'
+
+param_05      = 'nix_bad_data | Remove Corrupted Data | OPTIONAL | BOOLEAN | true'
+paramTrans_05 = 'READER_ARG | true,false | -n bad_data,'
+paramInfo_05  = 'Remove corrupted data packets'
+
+param_06      = 'nix_hfr_snd | Remove HFR Sounder | OPTIONAL | BOOLEAN | true'
+paramTrans_06 = 'READER_ARG | true,false | -n hfr_snd,'
+paramInfo_06  = 'Remove data captured during the HFR sounder'
+
+param_07      = 'nix_lp_rswp | Remove LP Sweep | OPTIONAL | BOOLEAN | true'
+paramTrans_07 = 'READER_ARG | true,false | -n lp_rswp,'
+paramInfo_07  = 'Remove data captured during the langmuir probe raw sweep'
+
+param_08      = 'nix_fake | Remove Ground | OPTIONAL | BOOLEAN | false'
+paramTrans_08 = 'READER_ARG | true,false | -n fake_dat,'
+paramInfo_08  = 'Remove data that was constructed on the ground'
+
+param_09      = 'nix_prescale_0 | Remove Prescale | OPTIONAL | BOOLEAN | true'
+paramTrans_09 = 'READER_ARG | true,false | -n dpf_zero,'
+paramInfo_09  = 'Remove LFDR/MFDR data which had a digital prescale of zero'
+
+; A flag set.  These may be transmitted to the server using either the syntax:
+;
+;   key = f1,f2,f3... Where , is a separater or
+;   key.f1 = on & key.f2=on & key.f2 = on ...
+;
+; This allows for simple web based clients to work without javascript
+
+param_10        = 'lfdr | LFDR Sensor Set | OPTIONAL | FLAG_SET | Bx,By,Bz | Bx,By,Bz'
+paramInfo_10    = 'Set Low Frequency Digital Receiver (LFDR) sensor set'
+paramValInfo_10 = 'Bx: Bx search coil |By: By search Coil | Bz: Bz search Coil'     
+paramTrans_10   = 'READER_ARG | -lfdr %{FLAGS,NONE}'
+
+param_11        = 'mfdr | MFDR Sensor Set | OPTIONAL | FLAG_SET | Bx,By,Bz | Bx,By,Bz'
+paramInfo_11    = 'Set Medium Frequnecy Digital Receiver (MFDR) sensor set'
+paramValInfo_11 = 'Bx: Bx search coil | By: By search Coil | Bz: Bz search Coil'
+paramTrans_11   = 'READER_ARG | -mfdr %{FLAGS,NONE}'
+
+param_12        = 'mfr | MFR Sensor Set | OPTIONAL | FLAG_SET | Bx,Bz | Bx,Bz
+paramInfo_12    = 'Set MFR sensor set'
+paramValInfo_12 = 'Bx: Bx search coil | Bz: Bz search coil'
+paramTrans_12   = 'READER_ARG | -mfr %{FLAGS,NONE}'
+

@@ -584,7 +584,7 @@ class DsdfParam(object):
 		else:
 			self.sType = 'boolean'
 
-		if len(lParam) > 3:        # We have a constrain.  See what kind it is
+		if len(lParam) > 3:        # We have a constraint.  See what kind it is
 			lConstraint = [s.strip() for s in lParam[3].split(':')]
 			self.sConstraint = lConstraint[0].lower()
 
@@ -592,8 +592,8 @@ class DsdfParam(object):
 				raise ValueError("%s: Key %s can't find : separated contraint list in %s"%(
 					sPath, sKey, lParam[3]
 				))
-			self.lConsItems = [s.strip() for s in "".join(lConstraint[1]) ]
-			for s in lConsItems:
+			self.lConsItems = [s.strip() for s in lConstraint[1].split() ]
+			for s in self.lConsItems:
 				if len(s) == 0:
 					raise ValueError("Empty constraint value")
 
@@ -787,7 +787,7 @@ def _mergeDas2Params(dOut, dProps, fLog):
 		elif p.sConstraint == 'option':
 			dOProp['enum'] = []
 			dOProp['type']  = 'enum'
-			for s in p.lConstItems:  
+			for s in p.lConsItems:  
 				dOProp['enum'].append({"value":s})  # No pval here for das2
 		elif p.sConstraint != None:
 			raise ValueError("%s: Unknown constraint type %s"%(sPath, p.sConstraint))

@@ -439,13 +439,13 @@ class MyOptParse(optparse.OptionParser):
 
 		file.write("""
 NAME:
-   dasflex_sdef - Create sets of related data source definitions
+   dasflex_cadd - Add data sources defined in DSDF files to the server catalog
 
 SYNOPSIS:
-   dasflex_sdef [options] [FILE_OR_DIR1 FILE_OR_DIR2 ...]
+   dasflex_cadd [options] [FILE_OR_DIR1 FILE_OR_DIR2 ...]
 
 DESCRIPTION:
-   dasflex_sdef adds a data source collection to a server catalog.  For each
+   dasflex_cadd adds a data source collection to a server catalog.  For each
    DSDF input file, multiple output catalog files are generated, typically:
 
       root/$LOCAL_ID.json          - A SourceSet %(src_set_ver)s catalog node
@@ -516,14 +516,19 @@ OPTIONS:
                converters. (Not Yet Implimented)
 
 ENVIRONMENT:
-   If present, the environment variable DASFLEX_PREFIX is used to locate the
-   server configuration file at $DASFLEX_PREFIX/etc/dasflex.conf.
+   If present, the environment variable DASFLEX_CONFIG is used to locate the
+   server configuration file.  It should be the full path to the file for
+   example: /var/www/dasflex/etc/dasflex.conf .
 
 EXAMPLES:
+   These examples assume that DASFLEX_CONFIG has been set.  For example via:
+
+      export DASFLEX=/var/www/dasflex/etc/dasflex.conf
+
    1. Processing a das2 DSDF file that has localId keyword defined as 
       'Juno/WAV/Survey' within the file using the command:
-
-         dasflex_add survey.dsdf
+   
+         dasflex_cadd survey.dsdf
 
       will create at least the following files:
 
@@ -537,8 +542,8 @@ EXAMPLES:
    2. Import all DSDFs for a server in one command using relative file paths to
       define the Local ID.  First to a test directory, then to the live catalog.
 
-         dasflex_add -o test -d /var/www/das2srv/datasets
-         dasflex_add -I -d /var/www/das2srv/datasets
+         dasflex_cadd -o test -d /var/www/das2srv/datasets
+         dasflex_cadd -I -d /var/www/das2srv/datasets
 
 SEE ALSO:
    The DSDF format is defined by das2 ICD at DOI: 10.5281/zenodo.3588534
