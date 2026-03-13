@@ -1,0 +1,16 @@
+description = 'Very long waveforms from L2 WFR data'
+reader = /project/rbsp/bin/rocky8/das2_runrdr /project/rbsp/etc/dsid/A/EMFISIS/L2/WFR_waveform-continuous-burst_psd.dsid --das2times=scet 
+sourceCode = 'https://research-git.uiowa.edu/space-physics/rbsp/emfisis/emfreaders'
+
+reducer = 'QReduce'
+qstream = 1
+validRange = '2012-08-30 to 2013-04-01'
+exampleRange = '2012-09-30T22:03:09 to 2012-09-30T22:03:28'
+
+param01 = 'sensor|Select the sensor to output| sensor=@ | option: Eu Ev Ew Bu Bv Bw'
+param02 = 'fftlen|Select the number of points in the DFT | fftlen=@ | range: 16 to 208896'
+param03 = 'overlap|Select the percentage overlap for each DFT | overlap=@ | range: 0 90'
+param04 = 'adj-overlap|Adjacent Overlap | adj-overlap=@ | option: true false'
+
+techContact = 'Chris Piker <chris-piker@uiowa.edu>'
+sciContact = 'George Hospodarsky <george-hospodarsky@uiowa.edu>'

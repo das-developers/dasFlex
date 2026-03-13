@@ -601,25 +601,25 @@ class DsdfParam(object):
 				self.sType = 'string'
 
 			elif self.sConstraint == 'range':
-				if len(self.lConstItems) != 2:
-					raise ValueError("%s: Key %s expected 2 items for the range in %s"%(
-						sPath, sKey, " ".join(self.lConstItems)
-					))
-				if self.lConstItems[0] >= self.lConstItems[1]:
+				if len(self.lConsItems) > 2 and self.lConsItems[1].lower() == 'to':
+					# Drop the 'to', ignore the units
+					self.lConsItems = [self.lConsItems[0], self.lConsItems[2]] 
+
+				if self.lConsItems[0] >= self.lConsItems[1]:
 					raise ValueError("%s: Key %s min value is greater than or equal to the max value in %s"%(
-						sPath, sKey, " ".join(self.lConstItems)
+						sPath, sKey, " ".join(self.lConsItems)
 					))
 				# type detection
 				try:
-					b,e = int(self.lConstItems[0], 10), int(self.lConstItems[0], 10)
+					b,e = int(self.lConsItems[0], 10), int(self.lConsItems[0], 10)
 					self.sType = 'integer'
 				except ValueError:
 					try:
-						b,e = float(self.lConstItems[0]), float(self.lConstItems[0])
+						b,e = float(self.lConsItems[0]), float(self.lConsItems[0])
 						self.sType = 'real'
 					except ValueError:
 						try:
-							b,e = das2.DasTime(self.lConstItems[0]), das2.DasTime(self.lConstItems[0])
+							b,e = das2.DasTime(self.lConsItems[0]), das2.DasTime(self.lConsItems[0])
 							self.sType = 'isotime'
 						except ValueError:
 							self.sType = 'string'
@@ -629,7 +629,7 @@ class DsdfParam(object):
 					sPath, sKey, lParam[3]
 				))
 				#self.sSetSep = self.lConsItems[0]
-				#self.lConsItems = self.lConstItems[1:]
+				#self.lConsItems = self.lConsItems[1:]
 				#self.sType = 'string'
 
 			else:
@@ -716,9 +716,9 @@ def _mergeDas2Params(dOut, dProps, fLog):
 		if p.sPrefix: dGet[OPT_KEY]['prefix'] = p.sPrefix
 
 		if p.sConstraint == 'range': 
-			dGet[OPT_KEY]['range'] = p.lConstItems
+			dGet[OPT_KEY]['range'] = p.lConsItems
 		elif p.sConstraint == 'option':
-			dGet[OPT_KEY]['enum'] = p.lConstItems
+			dGet[OPT_KEY]['enum'] = p.lConsItems
 			dGet[OPT_KEY]['type'] = 'enum'
 		else:
 			raise ValueError("Unknown constraint type %s"%p.sConstraint)
@@ -783,7 +783,7 @@ def _mergeDas2Params(dOut, dProps, fLog):
 			dOProp['value'] = None
 		
 		if p.sConstraint == 'range': 
-			dOProp['range'] = p.lConstItems
+			dOProp['range'] = p.lConsItems
 		elif p.sConstraint == 'option':
 			dOProp['enum'] = []
 			dOProp['type']  = 'enum'
