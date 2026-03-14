@@ -177,6 +177,7 @@ test_forms:
 	./test/cgi_main.sh "/source/juno/wav/survey.html" > /dev/null
 	./test/cgi_main.sh "/source/juno/ephemeris/jovicentric.html" > /dev/null
 	./test/cgi_main.sh "/source/examples/random.html" > /dev/null
+	./test/cgi_main.sh "/source/voyager/2/pws/specanalyzer-4s-efield.html" > /dev/null
 	mkdir -p test_data
 
 test_random:

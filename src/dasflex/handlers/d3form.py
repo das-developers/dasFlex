@@ -1058,6 +1058,9 @@ def prnOptGroupForm(
 			else:
 				if 'title' in dProp: sInfo = dProp['title']
 				elif 'label' in dProp: sInfo = dProp['label']
+
+			sInfo = sInfo.replace('\\n','<br>')
+			sInfo = sInfo.replace('\\\\n','<br>')
 			
 			sChecked = ""
 			if dProp['value'] == True: 
@@ -1096,7 +1099,7 @@ def prnOptGroupForm(
 			
 
 		elif sCtrlType == 'select':
-			if 'title'  in dProp: sMsg = dProp['title']
+			if 'title'  in dProp: sMsg = dProp['title'].replace('\\n','<br>').replace('\\\\n','<br>')
 			elif 'label' in dProp: sMsg = dProp['label']
 			else:                 sMsg = sProp[0].upper() + sProp[1:]
 			
@@ -1132,6 +1135,7 @@ def prnOptGroupForm(
 				else: sout(fOut, '%s '%sName)
 			else:
 				if 'title' in dProp:
+					sInfo = dProp['title'].replace('\\n','>br>').replace('\\\\n','<br>')
 					sout(fOut, '<label for="%s">%s</label>'%(sCtrlId, dProp['title']))
 				else:
 					sout(fOut, '<label for="%s">%s</label>'%(sCtrlId, sName))
@@ -1163,6 +1167,10 @@ def prnOptGroupForm(
 			
 			sout(fOut, '<input type="text" id="%s" size="%d" value="%s" %s %s>'%(
 				sCtrlId, nSize, sCtrlVal, sReq, sDisabled))
+
+			# Finally if this is a range, print the that
+			if 'range' in dSet and len(dSet['range']) > 1:
+				sout(fOut, ' range [ %s to %s ]'%tuple(dSet['range'][:2]))
 			
 			# Save off the control information
 			_addInCtrlId( dTargParam, sCtrlId)

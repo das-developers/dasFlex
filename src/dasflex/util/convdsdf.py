@@ -783,12 +783,12 @@ def _mergeDas2Params(dOut, dProps, fLog):
 			dOProp['value'] = None
 		
 		if p.sConstraint == 'range': 
-			dOProp['range'] = p.lConsItems
+			dOProp['set']['range'] = p.lConsItems
 		elif p.sConstraint == 'option':
-			dOProp['enum'] = []
+			dOProp['set']['enum'] = []
 			dOProp['type']  = 'enum'
 			for s in p.lConsItems:  
-				dOProp['enum'].append({"value":s})  # No pval here for das2
+				dOProp['set']['enum'].append({"value":s})  # No pval here for das2
 		elif p.sConstraint != None:
 			raise ValueError("%s: Unknown constraint type %s"%(sPath, p.sConstraint))
 
@@ -1428,7 +1428,6 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 	lId = [s.lower() for s in sLocalId.split('/')]
 	lBaseName.append({sF:'echo',    sA:[ "%s_%s_"%tuple(lId[:2])  ]} )
 	lBaseName.append({sF:'isorange',sA:["#[%s]"%sBegKey, "#[%s]"%sEndKey]} )
-	lBaseName.append({sF:'timeres', sA:["_", "#[%s#@#]"%sResKey, "s"]})
 	dCmds = _getDict(dOut, 'commands')
 	
 	# By default, both das2 and dasFlex sources output the same thing
@@ -1461,10 +1460,12 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 		else:
 			sCmd = sRdr
 
+		#lBaseName.append({sF:'timeres', sA:["_", "#[%s#@#]"%sResKey, "s"]})
+
 		# Two variations, one for requires interval
 		sInterval = ''
 		if _isPropTrue(dProps, 'requiresInterval'):  # Ephemeris readers
-			 lBaseName.append({sF:'timeres', sA:["#[%s]"%sIntKey]})
+			 lBaseName.append({sF:'timeres', sA:["_", "#[%s]"%sIntKey]})
 			 sInterval = '#[read.time.inter] '
 			
 		if _isPropTrue(dProps, 'dropParams'):
@@ -1480,13 +1481,20 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 		dReader['title']  = 'Full resolution upstream data reader'
 		dReader['output'] = dOutType
 		dReader['order']  = 1
+		sRdr = dOutType['type']
 		dReader['activation'] = [
 			{"key":sBegKey},
-			{"key":sFmtKey, "value":"das"},
-			{"key":sVerKey, "value":"2"}
+			{"key":sFmtKey, "value":dOutType['type']}
 		]
+		if 'version' in dOutType:
+			dReader['activation'].append({
+				"key":sVerKey, "value":dOutType['version']
+			})
+			sRdr += dOutType['version'].split('.')[0]
 
-		dCmds["das2_reader"] = dReader
+		sRdr += '_reader'
+
+		dCmds[sRdr] = dReader
 
 	# Is reduction allowed? ####################################
 	bReduce = True
@@ -1496,6 +1504,9 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 
 	if bReduce:
 		sReducer = None
+		sRedCmdSec = 'das_average'
+		if dOutType['type'] == 'qstream':
+			sRedCmdSec = 'qstream_average'
 		# Specific reducer overrides any automatic decisions
 		if ('reducer' in dProps) and '00' in dProps['reducer']:
 			sReducer = dProps['reducer']['00']
@@ -1512,14 +1523,14 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 					sReducer = dConf['QDS_REDUCER']
 
 		if sReducer:
-			dCmds["das_average"] = {
+			dCmds[sRedCmdSec] = {
 				'label':sReducer,
 				'template':'%s #[%s]'%(sReducer, sResKey),
-				'triggers':[{"key":sResKey,"value":0,"compare":"gt"}],
+				'activation':[{"key":sResKey,"value":0,"compare":"gt"}],
 				'input': dOutType, 'output': dOutType,
 				'order': 3
 			}
-			lBaseName.append({sF:'timeres', sA:'#[%s#@#]'%sResKey})
+			lBaseName.append({sF:'timeres', sA:['_','#[%s#@#]'%sResKey,'s']})
 	
 	# Cache Section #####################################
 	if 'cacheLevel' in dProps:
@@ -1609,6 +1620,7 @@ def makeInternal(fLog, dConf, sPath, sLocalId, lFilters = []):
 	if _isPropTrue(dProps, 'qstream'):
 		lRdrOut = ['qstream', None, 'binary']
 		dDefParams["das2"] = {"format.type":"qstream"}
+		dDefParams["flex"] = {"format.type":"qstream"}
 
 	elif _isPropTrue(dProps, 'das2Stream'):
 		lRdrOut = ['das', '2', 'binary']

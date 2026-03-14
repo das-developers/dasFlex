@@ -473,7 +473,7 @@ def _normparams(fLog, lArgs):
 	filename
 	"""
 
-	return "FixMeParams"
+	return "_params"
 
 def _timeres(fLog, lArgs):
 	"""Given arguments that supposedly set a time range in seconds, provide

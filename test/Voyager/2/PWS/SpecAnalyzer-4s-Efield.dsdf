@@ -1,0 +1,40 @@
+das2Stream = 1
+description = 'Electric Field averages and peaks from the Voyager 2 PWS Spectrum Analyzer'
+reader = '/project/voyager/etc/invoke.sh pws_l3sa_rdr -D /project/voyager/data/pws/sa/vg2_pws_drop_list.tab -R /project/voyager/pds/VGPW_0101/DATA 2'
+reducer = 'das2_bin_peakavgsec'
+
+;readAccess = 'age:3m|group:voyager'
+
+validRange = '1977-08-20 to now'
+testRange = '2009-01-01 to 2009-04-01|Regression Test Data'
+exampleRange_00 = '2014-08-31 to 2014-09-01|Latest Data'
+exampleRange_01 = '1979-07-05 to 1979-07-27|Jupiter Encounter'
+exampleRange_02 = '1981-08-20 to 1981-09-15|Saturn Encounter'
+exampleRange_03 = '1986-01-23 to 1986-01-26|Uranus Encounter'
+exampleRange_04 = '1989-08-24 to 1989-08-26|Neptune Encounter'
+
+techContact = 'Chris Piker <chris-piker@uiowa.edu>, Larry Granroth <larry-granroth@uiowa.edu>'
+sciContact = 'Bill Kurth <william-kurth@uiowa.edu>'
+
+;item_00 = 'DN | Raw electric antenna ADC values'
+;item_01 = 'EF | Calibrate as electric field units (V/m)'
+;item_02 = 'SD | Calibrate as electric spectral density V**2 m**-2 Hz**-1'
+;item_03 = 'PF | Calibrate as electric power spectral density W m**-2 Hz**-1'
+
+
+param_00 = 'Keep_Negative | Negative values are used as a noise flag '+$
+           'and are normally excluded.  Use this option to keep them. | --negative=off '
+param_01 = 'No_PLS_Filter | Turn off PLS noise filter for the 311 Hz and 562 Hz bands. | --pls=off'
+param_02 = 'No_Burst_Filter | Turn off 17-time-point noise burst filter | --noise=off'
+param_03 = 'Threshold_Filter | Filter out values above the data number thresholds given in HOUR[1/2]/FILTER.CSV | --threshold=on '
+param_04 = 'Spike_Filter | Filter interference observed in 1.0, 1.78 and 3.1 KHz channels | --v2spike=on'
+param_08 = 'Channel | Output only a single channel, by default all are sent | --chan=@ |'+$
+'option: 10.0Hz 17.8Hz 31.1Hz 56.2Hz 100Hz 178Hz 311Hz 562Hz 1.00kHz 1.78kHz 3.11kHz 5.62kHz 10.0kHz 17.8kHz 31.1kHz 56.2kHz'
+param_09 = 'SCLK | Output spacecraft clock values in addition to SCET times | -s'
+
+param_10 = 'output|Set the output units to \n'+$
+           'DN: Raw data numbers; \n'+$
+           'EF: Electric Field in V/m; \n'+$
+           'SD: Electric spectral density in V^2/(m^2 Hz); \n'+$
+           'PF: Electric power spectral density in W/(m^2 Hz)\n'+$
+           '|--units=@|option: DN EF SD PF'
