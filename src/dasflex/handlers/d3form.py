@@ -407,7 +407,7 @@ class UrlBldr:
 		"""
 		if not self.dNode: return False
 		if not sProperty or not isinstance(sProperty, str):
-			fLog.write("   ERROR: Invalid property path %s"%sProperty)
+			self.fLog.write("   ERROR: Invalid property path %s"%sProperty)
 			return False
 
 		lPath = sProperty.strip('/').split('/')
@@ -415,7 +415,7 @@ class UrlBldr:
 		if not dProp: return False
 
 		if 'set' not in dProp:
-			fLog.write("%s is not a settable interface property"%sProperty)
+			self.fLog.write("%s is not a settable interface property"%sProperty)
 			return False
 		
 		dSet = dProp['set'] # The translation interface
@@ -423,13 +423,13 @@ class UrlBldr:
 		dParams = self.dNode['protocol']['httpParams']
 
 		if 'param' not in dSet:
-			fLog.write("   ERROR: key 'param' missing in settable property.")
+			self.fLog.write("   ERROR: key 'param' missing in settable property.")
 			return False
 		sParam = dSet['param']
 
 		# Check to see that referenced param actually exists
 		if sParam not in dParams:
-			fLog.write("   ERROR: Invalid httpParam reference from interface '%s' "%sParam)
+			self.fLog.write("   ERROR: Invalid httpParam reference from interface '%s' "%sParam)
 			return False
 
 		# If the settable thing is an enumeration, make sure the value
@@ -438,14 +438,14 @@ class UrlBldr:
 			lAccept = []
 			for dEnum in dSet['enum']:  # Enumeration is list of objects
 				if 'value' not in dEnum:
-					fLog.write("   ERROR: enum missing value in settable property")
+					self.fLog.write("   ERROR: enum missing value in settable property")
 					return False
 				lAccept.append(dEnum['value'])
 				if dEnum['value'] == value:
 					break                 # Hold on to this enum
 				
 			if value not in lAccept:
-				fLog.value("   ERROR: Value '%s' is not a member of %s"%value, lAccept)
+				self.fLog.write("   ERROR: Value '%s' is not a member of %s"%(value, lAccept))
 
 			# Enum items can set a flag on it's own
 			if 'flag' in dEnum: value = dEnum['flag']
@@ -470,10 +470,10 @@ class UrlBldr:
 		
 		# Handle flag params
 		if 'flags' not in dParams[sParam]:
-			fLog.write("   ERROR: HTTP parameter '%s' has no flags to set."%sParam)
+			self.fLog.write("   ERROR: HTTP parameter '%s' has no flags to set."%sParam)
 			return False
 		if sFlag not in dParams[sParam]['flags']:
-			fLog.write("   ERROR: Invalid flag '%s' for HTTP parameter '%s'"%(sFlag, sParam))
+			self.fLog.write("   ERROR: Invalid flag '%s' for HTTP parameter '%s'"%(sFlag, sParam))
 			return False
 
 		dFlag = dParams[sParam]['flags'][sFlag]
