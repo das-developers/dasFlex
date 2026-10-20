@@ -119,8 +119,9 @@ def handleReq(U, sReqType, dConf, fLog, form, sPathInfo):
 			return 0
 			
 		elif nRet == U.auth.AUTH_FAIL:
-			sys.stdout.write("Status: 401 Authorization Required\r\n")
-			sys.stdout.write('WWW-Authenticate: Basic realm="%s"\r\n\r\n'%dsdf['securityRealm'])
+			U.webio.pout("Status: 401 Authorization Required\r\n")
+			U.webio.prnCorsHdrs()  # else a browser script can't even see the 401
+			U.webio.pout('WWW-Authenticate: Basic realm="%s"\r\n\r\n'%dsdf['securityRealm'])
 			return 0
 
 		# Only other status out of auth is AUTH_SUCCESS, which means we proceed

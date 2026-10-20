@@ -14,7 +14,7 @@
 # though N_ARCH is still set for older install methods.
 
 # Make sure this matches with pyproject.toml
-VERSION:=0.6rc1
+VERSION:=0.6rc2
 
 ifeq ($(PY_BIN),)
 PY_BIN=$(shell which python)

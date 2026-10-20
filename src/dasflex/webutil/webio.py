@@ -216,7 +216,8 @@ def forbidError(fLog, uOut, bHdrSent=False, sDasVer="2"):
 	return dasExcept('Forbidden', uOut, fLog, bHdrSent, sDasVer)
 
 def notFoundError(fLog, uOut, bHdrSent=False, sDasVer="2"):
-	pout("Status: 404 Not Found\r\n")
+	if not bHdrSent:
+		pout("Status: 404 Not Found\r\n")
 	return dasExcept('NoSuchDataSource', uOut, fLog, bHdrSent, sDasVer)
 	
 	
@@ -311,7 +312,9 @@ def fileOut(fLog, lHeaders, sPath, sErrMsg=None):
 	try:
 		fIn = open(sPath, 'rb')
 	except:
-		pout("Status: 404 Not Found\r\n\r\n")
+		pout("Status: 404 Not Found\r\n")
+		prnCorsHdrs()
+		pout("\r\n")
 		if sErrMsg:
 			pout(sErrMsg)
 			fLog.write("File %s not found on this server"%sPath)

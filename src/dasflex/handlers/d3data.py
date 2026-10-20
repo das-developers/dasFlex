@@ -282,11 +282,14 @@ def handleReq(modUtil, sReqType, dConf, fLog, form, sPathInfo):
 		if nRet == U.auth.AUTH_FAIL:
 			if sRealm:
 				U.webio.pout("Status: 401 Authorization Required\r\n")
+				U.webio.prnCorsHdrs()  # else a browser script can't even see the 401
 				U.webio.pout('WWW-Authenticate: Basic realm="%s"\r\n\r\n'%sRealm)
 				return 0
 			else:
 				fLog.write("Authentication failed and no security realm provided")
-				U.webio.pout("Status: 403 Forbidden\r\n\r\n")
+				U.webio.pout("Status: 403 Forbidden\r\n")
+				U.webio.prnCorsHdrs()
+				U.webio.pout("\r\n")
 				return 0
 
 		# Only other status out of auth is AUTH_SUCCESS, which means we proceed

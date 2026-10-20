@@ -1,7 +1,7 @@
 [project]
 name = "dasflex"
-version = "0.6rc1"
-dependencies = [ "das2py>=3.0rc4"]
+version = "0.6rc2"
+dependencies = [ "das2py>=3.0rc6"]
 description = "A multi-format data stream server implementing das3 and other APIs"
 readme = "README.md"
 requires-python = ">=3.7"

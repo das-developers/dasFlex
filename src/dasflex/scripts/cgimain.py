@@ -390,6 +390,15 @@ but any location readable by the web-server user account is sufficent.
 			return 21
 	
 
+	# Answer CORS preflight requests from browser scripts.
+	# Max-Age lets the browser skip asking again for a day.
+	if os.environ.get('REQUEST_METHOD', 'GET').upper() == 'OPTIONS':
+		U.webio.pout("Status: 204 No Content\r\n")
+		U.webio.prnCorsHdrs()
+		U.webio.pout("Access-Control-Max-Age: 86400\r\n\r\n")
+		U.webio.flushOut()
+		return 0
+
 	form = cgi.FieldStorage()
 
 	# Way up high, before anything Check the query parameters for obvious problems

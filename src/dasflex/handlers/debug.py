@@ -44,8 +44,9 @@ def handleReq(U, sReqType, dConf, fLog, form, sPathInfo):
 				fIn.close()
 			
 	if not bAuth:
-		sys.stdout.write("Status: 401 Authorization Required\r\n")
-		sys.stdout.write('WWW-Authenticate: Basic realm="Das2 Server"\r\n\r\n')
+		U.webio.pout("Status: 401 Authorization Required\r\n")
+		U.webio.prnCorsHdrs()  # else a browser script can't even see the 401
+		U.webio.pout('WWW-Authenticate: Basic realm="Das2 Server"\r\n\r\n')
 		return 0
 	
 	print("Content-Type: text/html; charset=utf-8")
