@@ -59,7 +59,7 @@ WHEEL_FILE:=dasflex-$(VERSION)-py$(PY_MAJ_VER_TOK)-none-any.whl
 VENV_MOD:=venv
 
 DAS_MOD:=das2py
-DAS_VER:=3.0rc5
+DAS_VER:=3.0rc7
 
 DAS_WHEEL_FILE:=$(DAS_MOD)-$(DAS_VER)-cp$(PY_VER_TOK)-cp$(PY_VER_TOK)-linux_x86_64.whl
 DAS_WHEEL_PATH=$(abspath ../das2py/dist/$(DAS_WHEEL_FILE))

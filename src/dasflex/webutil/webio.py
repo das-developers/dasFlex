@@ -128,6 +128,19 @@ def isBrowser():
 # Only ever send one set of headers
 g_bHdrSent = False
 
+def prnCorsHdrs():
+	"""
+	Tell pages it's okay to get data here. CORS is just wierd, why 
+	would I put pages on the public internet that scripts can't read?
+	Java and C clients ignore this.  Seems like it should be the 
+	opposite. That the default (no headers) mean world read.  If you
+	want to restrict readers *that* should require a header.
+	"""
+	pout("Access-Control-Allow-Origin: *\r\n")
+	pout("Access-Control-Allow-Methods: GET\r\n")
+	pout("Access-Control-Allow-Headers: Content-Type, Authorization\r\n")
+
+
 def dasExcept(sType, uOut, fLog=None, bHdrSent=False, sDasVer="2"):
 	"""Send headers if needed, then replace error text newlines with 
 	carrage-return newline pairs
@@ -140,6 +153,7 @@ def dasExcept(sType, uOut, fLog=None, bHdrSent=False, sDasVer="2"):
 	bClientIsBrowser = isBrowser()
 	
 	if not bHdrSent:
+		prnCorsHdrs()
 		if bClientIsBrowser:
 			pout("Content-Type: text/plain; charset=utf-8\r\n\r\n")
 		else:
@@ -198,7 +212,7 @@ def queryError(fLog, uOut, bHdrSent=False, sDasVer="2"):
 	
 def forbidError(fLog, uOut, bHdrSent=False, sDasVer="2"):
 	if not bHdrSent:
-		pout("Status: 403 Forbidden\r\n", sDasVer="2")
+		pout("Status: 403 Forbidden\r\n")
 	return dasExcept('Forbidden', uOut, fLog, bHdrSent, sDasVer)
 
 def notFoundError(fLog, uOut, bHdrSent=False, sDasVer="2"):
